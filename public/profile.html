@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>My Profile</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>MediCare </h1>
+  </div>
+  <nav id="headerNav"></nav>
+</header>
+
+<div class="container">
+  <div id="notLoggedMsg" style="display:none;">
+    <p>Please login to see your profile.</p>
+    <a class="btn" href="login.html">Go to Login</a>
+  </div>
+
+  <div id="profileBox">
+    <div class="profile-header">
+      <h2 style="margin:0;">Welcome, <span id="userNameText"></span></h2>
+      <button onclick="logout()">Logout</button>
+    </div>
+
+    <div id="membershipStatusBox"></div>
+
+    <h3>My Details</h3>
+    <form id="detailsForm">
+      <label>Delivery Address</label>
+      <textarea id="profileAddress" rows="3"></textarea>
+      <label>Phone Number</label>
+      <input type="tel" id="profilePhone" placeholder="10 digit mobile number" pattern="[0-9]{10}">
+      <button type="submit">Save My Details</button>
+      <p id="detailsSavedText"></p>
+    </form>
+
+    <h3>My Orders</h3>
+    <div id="ordersBox"></div>
+
+    <h3>My Lab Test Bookings</h3>
+    <div id="labBookingsBox"></div>
+
+    <h3>Refill Reminders</h3>
+    <div id="dueRemindersBox"></div>
+    <form id="reminderForm">
+      <label>Medicine Name</label>
+      <input type="text" id="reminderMedicine" required>
+      <label>Remind Me On</label>
+      <input type="date" id="reminderDate" required>
+      <button type="submit">Add Reminder</button>
+    </form>
+
+    <div id="remindersBox"></div>
+
+    <h3>Chat with Pharmacist</h3>
+    <div class="chat-box">
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-input-row">
+        <input type="text" id="chatInput" placeholder="Ask about your order or medicine">
+        <button onclick="sendChatMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Online Pharmacy Website - College Project
+</footer>
+
+<script src="script.js"></script>
+<script>
+  if (!isLoggedIn()) {
+    document.getElementById("notLoggedMsg").style.display = "block";
+    document.getElementById("profileBox").style.display = "none";
+  } else {
+    document.getElementById("userNameText").innerText = getUserName();
+    loadOrders();
+    loadReminders();
+    loadChat();
+    loadMyDetails();
+    loadLabBookings();
+    setInterval(loadChat, 4000);
+  }
+
+  const orderSteps = ["Pending Verification", "Prescription Verified", "Processing", "Out for Delivery", "Delivered"];
+
+  function getTrackingHtml(status) {
+    if (status === "Rejected" || status === "Refunded") {
+      return "<p style='color:#ff6161;font-weight:bold;'>" + status + "</p>";
+    }
+
+    const currentStep = orderSteps.indexOf(status);
+    let html = "<div style='display:flex;gap:4px;margin-top:6px;'>";
+
+    for (let i = 0; i < orderSteps.length; i++) {
+      const isDone = i <= currentStep;
+      const barColor = isDone ? "#232f3e" : "#e0e0e0";
+      html = html + "<div style='flex:1;height:6px;background:" + barColor + ";border-radius:3px;' title='" + orderSteps[i] + "'></div>";
+    }
+
+    html = html + "</div>";
+    return html;
+  }
+
+  function loadMyDetails() {
+    const cachedProfile = getProfileCache();
+    if (cachedProfile.address) {
+      document.getElementById("profileAddress").value = cachedProfile.address;
+    }
+    if (cachedProfile.phone) {
+      document.getElementById("profilePhone").value = cachedProfile.phone;
+    }
+
+    fetch("/api/user/" + getUserId())
+      .then(function (res) { return res.json(); })
+      .then(function (user) {
+        if (user.address) {
+          document.getElementById("profileAddress").value = user.address;
+        }
+        if (user.phone) {
+          document.getElementById("profilePhone").value = user.phone;
+        }
+        saveProfileCache(user.address, user.phone);
+
+        const memberBox = document.getElementById("membershipStatusBox");
+        if (user.is_member === 1) {
+          memberBox.innerHTML = "<div class='message success'>You are a MediCare Plus member (" + user.member_plan + " plan). Valid until " + user.member_expiry + ".</div>";
+        } else {
+          memberBox.innerHTML = "<div class='message warning'>You are not a MediCare Plus member yet. <a href='membership.html'>Join now for free delivery and discounts</a></div>";
+        }
+      });
+  }
+
+  document.getElementById("detailsForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const address = document.getElementById("profileAddress").value;
+    const phone = document.getElementById("profilePhone").value;
+
+    fetch("/api/update-profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: getUserId(), address: address, phone: phone })
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.success) {
+          saveProfileCache(address, phone);
+          document.getElementById("detailsSavedText").innerText = "Saved successfully.";
+        }
+      });
+  });
+
+  function loadOrders() {
+    fetch("/api/orders/" + getUserId())
+      .then(function (res) { return res.json(); })
+      .then(function (orders) {
+        const box = document.getElementById("ordersBox");
+
+        if (orders.length === 0) {
+          box.innerHTML = "<p>You have not placed any order yet.</p>";
+          return;
+        }
+
+        let html = "<table><tr><th>Order ID</th><th>Items</th><th>Total</th><th>Payment</th><th>Delivery</th><th>Status</th></tr>";
+
+        for (let i = 0; i < orders.length; i++) {
+          const o = orders[i];
+          const items = JSON.parse(o.items);
+          let itemNames = "";
+          for (let j = 0; j < items.length; j++) {
+            itemNames = itemNames + items[j].name + " x " + items[j].qty + "<br>";
+          }
+
+          let extraNote = "";
+          if (o.insurance_status) {
+            extraNote = extraNote + "Insurance: " + o.insurance_status + "<br>";
+          }
+          if (o.cold_chain_status) {
+            extraNote = extraNote + "Cold Pack<br>";
+          }
+
+          html = html + "<tr>" +
+            "<td>" + o.id + "</td>" +
+            "<td>" + itemNames + "</td>" +
+            "<td>Rs. " + o.total + "</td>" +
+            "<td>" + o.payment_method + "<br>" + o.payment_status + "</td>" +
+            "<td>" + o.delivery_date + "<br>" + extraNote + "</td>" +
+            "<td>" + o.status + getTrackingHtml(o.status) + "</td>" +
+            "</tr>";
+        }
+
+        html = html + "</table>";
+        box.innerHTML = html;
+      });
+  }
+
+  function loadLabBookings() {
+    fetch("/api/lab-bookings/" + getUserId())
+      .then(function (res) { return res.json(); })
+      .then(function (bookings) {
+        const box = document.getElementById("labBookingsBox");
+
+        if (bookings.length === 0) {
+          box.innerHTML = "<p>No lab tests booked yet.</p>";
+          return;
+        }
+
+        let html = "<table><tr><th>Test</th><th>Price</th><th>Booking Date</th><th>Status</th></tr>";
+        for (let i = 0; i < bookings.length; i++) {
+          const b = bookings[i];
+          html = html + "<tr><td>" + b.test_name + "</td><td>Rs. " + b.price + "</td><td>" + b.booking_date + "</td><td>" + b.status + "</td></tr>";
+        }
+        html = html + "</table>";
+        box.innerHTML = html;
+      });
+  }
+
+  function loadReminders() {
+    fetch("/api/reminders/" + getUserId())
+      .then(function (res) { return res.json(); })
+      .then(function (reminders) {
+        const box = document.getElementById("remindersBox");
+
+        if (reminders.length === 0) {
+          box.innerHTML = "<p>No reminders set.</p>";
+          return;
+        }
+
+        let html = "<table><tr><th>Medicine</th><th>Remind Date</th></tr>";
+        let dueList = "";
+        const today = new Date().toISOString().split("T")[0];
+
+        for (let i = 0; i < reminders.length; i++) {
+          html = html + "<tr><td>" + reminders[i].medicine_name + "</td><td>" + reminders[i].remind_date + "</td></tr>";
+          if (reminders[i].remind_date <= today) {
+            dueList = dueList + reminders[i].medicine_name + ", ";
+          }
+        }
+        html = html + "</table>";
+        box.innerHTML = html;
+
+        const dueBox = document.getElementById("dueRemindersBox");
+        if (dueList !== "") {
+          dueBox.innerHTML = "<div class='message success'>Time to reorder: " + dueList.slice(0, -2) + "</div>";
+        } else {
+          dueBox.innerHTML = "";
+        }
+      });
+  }
+
+  document.getElementById("reminderForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const medicineName = document.getElementById("reminderMedicine").value;
+    const remindDate = document.getElementById("reminderDate").value;
+
+    fetch("/api/reminders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: getUserId(), medicineName: medicineName, remindDate: remindDate })
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.success) {
+          document.getElementById("reminderMedicine").value = "";
+          document.getElementById("reminderDate").value = "";
+          loadReminders();
+        }
+      });
+  });
+
+  function loadChat() {
+    fetch("/api/chat/" + getUserId())
+      .then(function (res) { return res.json(); })
+      .then(function (messages) {
+        const box = document.getElementById("chatMessages");
+        let html = "";
+
+        if (messages.length === 0) {
+          html = "<p>Ask the pharmacist any question about your medicines or order.</p>";
+        }
+
+        for (let i = 0; i < messages.length; i++) {
+          const m = messages[i];
+          const cssClass = m.sender === "user" ? "user" : "pharmacist";
+          html = html + "<div class='chat-msg " + cssClass + "'>" + m.message + "</div>";
+        }
+
+        box.innerHTML = html;
+        box.scrollTop = box.scrollHeight;
+      });
+  }
+
+  function sendChatMessage() {
+    const input = document.getElementById("chatInput");
+    const message = input.value;
+
+    if (message === "") {
+      return;
+    }
+
+    fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: getUserId(), sender: "user", message: message })
+    })
+      .then(function (res) { return res.json(); })
+      .then(function () {
+        input.value = "";
+        loadChat();
+      });
+  }
+</script>
+
+</body>
+</html>

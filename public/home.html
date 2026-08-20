@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MediCare Online Pharmacy</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>MediCare </h1>
+  </div>
+  <nav id="headerNav"></nav>
+</header>
+
+<div class="banner">
+  
+</div>
+
+<div class="container">
+
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="Search medicine name" onkeyup="if(event.key==='Enter'){searchMedicines()}">
+    <button onclick="searchMedicines()">Search</button>
+  </div>
+
+  <div class="category-chips" id="categoryChips"></div>
+
+  <div class="medicine-grid" style="margin-bottom:30px;">
+    <div class="pack-card">
+      <h3>Book Lab Tests</h3>
+      <p>Home sample collection for CBC, Sugar, Thyroid and more.</p>
+      <a class="btn" href="labtests.html">Book a Test</a>
+    </div>
+    <div class="pack-card">
+      <h3>Chat with Doctor</h3>
+      <p>First 5 minutes free, then pay per minute based on the doctor.</p>
+      <a class="btn" href="doctors.html">Start Chat</a>
+    </div>
+    <div class="pack-card">
+      <h3>MediCare Plus Membership</h3>
+      <p>Free delivery and extra discount on every medicine order.</p>
+      <a class="btn" href="membership.html">Become a Member</a>
+    </div>
+  </div>
+
+  <div id="interactionWarning"></div>
+
+  <h2>Deal of the Day</h2>
+  <div class="medicine-grid" id="dealsGrid" style="margin-bottom:35px;"></div>
+
+  <h2>Health Packs</h2>
+  <div class="medicine-grid" id="packsGrid"></div>
+
+  <h2 style="margin-top:35px;">Medicines</h2>
+  <div id="medicineGrid" class="medicine-grid">
+    <p>Loading medicines...</p>
+  </div>
+</div>
+
+<footer>
+  Online Pharmacy Website - College Project
+</footer>
+
+<script src="script.js"></script>
+<script>
+  let selectedCategory = "All";
+
+  const healthPacks = [
+    {
+      title: "Diabetes Care Pack",
+      description: "Metformin and Glimepiride combo for daily diabetes management.",
+      medicineNames: ["Metformin 500mg", "Glimepiride 2mg"]
+    },
+    {
+      title: "Blood Pressure Care Pack",
+      description: "Amlodipine and Telmisartan combo for blood pressure control.",
+      medicineNames: ["Amlodipine 5mg", "Telmisartan 40mg"]
+    },
+    {
+      title: "Cold and Immunity Pack",
+      description: "Cough syrup with Vitamin C to fight cold season.",
+      medicineNames: ["Cough Syrup", "Vitamin C Tablets"]
+    }
+  ];
+
+  function loadCategories() {
+    fetch("/api/categories")
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        const box = document.getElementById("categoryChips");
+        let html = "<div class='chip active' onclick=\"filterCategory('All', this)\">All</div>";
+        for (let i = 0; i < data.length; i++) {
+          html = html + "<div class='chip' onclick=\"filterCategory('" + data[i].category + "', this)\">" + data[i].category + "</div>";
+        }
+        box.innerHTML = html;
+      });
+  }
+
+  function filterCategory(category, el) {
+    selectedCategory = category;
+    const chips = document.getElementsByClassName("chip");
+    for (let i = 0; i < chips.length; i++) {
+      chips[i].classList.remove("active");
+    }
+    el.classList.add("active");
+    searchMedicines();
+  }
+
+  function searchMedicines() {
+    const search = document.getElementById("searchInput").value;
+
+    fetch("/api/medicines?search=" + encodeURIComponent(search) + "&category=" + encodeURIComponent(selectedCategory))
+      .then(function (res) { return res.json(); })
+      .then(function (data) { showMedicines(data); });
+  }
+
+  function showMedicines(medicines) {
+    const grid = document.getElementById("medicineGrid");
+    grid.innerHTML = "";
+
+    if (medicines.length === 0) {
+      grid.innerHTML = "<p>No medicines found.</p>";
+      return;
+    }
+
+    for (let i = 0; i < medicines.length; i++) {
+      const m = medicines[i];
+      const card = document.createElement("div");
+      card.className = "medicine-card";
+
+      let stockText = "In Stock: " + m.stock;
+      let addButton = "<button onclick=\"quickAdd(" + m.id + ", '" + m.name.replace(/'/g, "\\'") + "', " + m.price + ", " + m.needs_prescription + ", " + m.cold_chain + ")\">Add to Cart</button>";
+
+      if (m.stock === 0) {
+        stockText = '<span class="out-of-stock">Out of Stock</span>';
+        addButton = "<button disabled>Out of Stock</button>";
+      }
+
+      let rxTag = "";
+      if (m.needs_prescription === 1) {
+        rxTag = '<span class="rx-tag">Prescription Required</span>';
+      }
+
+      let coldTag = "";
+      if (m.cold_chain === 1) {
+        coldTag = '<span class="cold-tag">Cold Chain - Delivered Chilled</span>';
+      }
+
+      let heartClass = isInWishlist(m.id) ? "heart-btn active" : "heart-btn";
+
+      let ratingSmall = "";
+      if (m.rating) {
+        ratingSmall = "<p><span class='stars' style='font-size:14px;'>" + getStarsHtml(m.rating) + "</span> (" + m.rating_count + ")</p>";
+      }
+
+      card.innerHTML =
+        "<div class='" + heartClass + "' onclick='toggleHeart(this, " + m.id + ", \"" + m.name.replace(/"/g, "") + "\", " + m.price + ")'>&#9825;</div>" +
+        "<img src='" + getMedicineImage(m) + "' class='medicine-icon' alt='" + m.name + "' onerror=\"this.onerror=null;this.style.display='none';\">" +
+        "<h3>" + m.name + "</h3>" +
+        ratingSmall +
+        "<p>" + m.category + "</p>" +
+        getPriceHtml(m) +
+        "<p>" + stockText + "</p>" +
+        "<p>" + rxTag + " " + coldTag + "</p>" +
+        "<div class='card-buttons'>" + addButton + "<a class='btn btn-outline' href='product.html?id=" + m.id + "'>View</a></div>";
+
+      grid.appendChild(card);
+    }
+
+    checkDrugInteractions();
+  }
+
+  function quickAdd(id, name, price, needsPrescription, coldChain) {
+    addToCart(id, name, price, needsPrescription, coldChain);
+    checkDrugInteractions();
+  }
+
+  function loadPacks() {
+    fetch("/api/medicines")
+      .then(function (res) { return res.json(); })
+      .then(function (allMedicines) {
+        const box = document.getElementById("packsGrid");
+        let html = "";
+
+        for (let i = 0; i < healthPacks.length; i++) {
+          const pack = healthPacks[i];
+          let packTotal = 0;
+          let packItems = [];
+
+          for (let j = 0; j < pack.medicineNames.length; j++) {
+            for (let k = 0; k < allMedicines.length; k++) {
+              if (allMedicines[k].name === pack.medicineNames[j]) {
+                packTotal = packTotal + allMedicines[k].price;
+                packItems.push(allMedicines[k]);
+              }
+            }
+          }
+
+          html = html +
+            "<div class='pack-card'>" +
+            "<h3>" + pack.title + "</h3>" +
+            "<p>" + pack.description + "</p>" +
+            "<p>" + pack.medicineNames.join(", ") + "</p>" +
+            "<p class='price'>Rs. " + packTotal + "</p>" +
+            "<button onclick='addPack(" + i + ")'>Add Pack to Cart</button>" +
+            "</div>";
+        }
+
+        box.innerHTML = html;
+        window.allMedicinesForPacks = allMedicines;
+      });
+  }
+
+  function addPack(packIndex) {
+    const pack = healthPacks[packIndex];
+    for (let j = 0; j < pack.medicineNames.length; j++) {
+      for (let k = 0; k < window.allMedicinesForPacks.length; k++) {
+        const m = window.allMedicinesForPacks[k];
+        if (m.name === pack.medicineNames[j]) {
+          addToCart(m.id, m.name, m.price, m.needs_prescription, m.cold_chain);
+        }
+      }
+    }
+    checkDrugInteractions();
+  }
+
+  // this is just a sample check, not real medical data
+  const interactionPairs = [
+    ["Azithromycin 500mg", "Amlodipine 5mg"],
+    ["Metformin 500mg", "Glimepiride 2mg"],
+    ["Telmisartan 40mg", "Amlodipine 5mg"]
+  ];
+
+  function checkDrugInteractions() {
+    const cart = getCart();
+    const cartNames = [];
+    for (let i = 0; i < cart.length; i++) {
+      cartNames.push(cart[i].name);
+    }
+
+    let warningText = "";
+    for (let i = 0; i < interactionPairs.length; i++) {
+      const pair = interactionPairs[i];
+      if (cartNames.indexOf(pair[0]) !== -1 && cartNames.indexOf(pair[1]) !== -1) {
+        warningText = warningText + pair[0] + " and " + pair[1] + " together, ";
+      }
+    }
+
+    const box = document.getElementById("interactionWarning");
+    if (warningText !== "") {
+      box.innerHTML = "<div class='message warning'>Note: Your cart has " + warningText.slice(0, -2) + ". Please consult your doctor or pharmacist before taking these together. (This is a sample educational check, not medical advice.)</div>";
+    } else {
+      box.innerHTML = "";
+    }
+  }
+
+  function loadDeals() {
+    fetch("/api/medicines")
+      .then(function (res) { return res.json(); })
+      .then(function (medicines) {
+        const withDiscount = [];
+        for (let i = 0; i < medicines.length; i++) {
+          if (medicines[i].mrp && medicines[i].mrp > medicines[i].price && medicines[i].stock > 0) {
+            withDiscount.push(medicines[i]);
+          }
+        }
+
+        withDiscount.sort(function (a, b) {
+          const discountA = (a.mrp - a.price) / a.mrp;
+          const discountB = (b.mrp - b.price) / b.mrp;
+          return discountB - discountA;
+        });
+
+        const topDeals = withDiscount.slice(0, 6);
+        let html = "";
+
+        for (let i = 0; i < topDeals.length; i++) {
+          const m = topDeals[i];
+          html = html +
+            "<div class='medicine-card'>" +
+            "<img src='" + getMedicineImage(m) + "' class='medicine-icon' alt='" + m.name + "' onerror=\"this.onerror=null;this.style.display='none';\">" +
+            "<h3>" + m.name + "</h3>" +
+            getPriceHtml(m) +
+            "<a class='btn' href='product.html?id=" + m.id + "'>View</a>" +
+            "</div>";
+        }
+
+        document.getElementById("dealsGrid").innerHTML = html;
+      });
+  }
+
+  loadCategories();
+  loadDeals();
+  loadPacks();
+  searchMedicines();
+</script>
+
+</body>
+</html>

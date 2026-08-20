@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Chat with Doctor - MediCare</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>MediCare</h1>
+  </div>
+  <nav id="headerNav"></nav>
+</header>
+
+<div class="container">
+  <h2 id="chatTitle">Chat with Doctor</h2>
+
+  <div id="notLoggedMsg" style="display:none;" class="message warning">Please login first.</div>
+
+  <div id="chatBox" style="display:none;">
+    <div class="message success" id="timerBox">Free time left: 5:00</div>
+
+    <div class="chat-box" style="max-width:600px;">
+      <div class="chat-messages" id="liveMessages" style="height:320px;"></div>
+      <div class="chat-input-row">
+        <input type="text" id="liveInput" placeholder="Type your message to the doctor">
+        <button onclick="sendLiveMessage()">Send</button>
+      </div>
+    </div>
+    <br>
+    <button onclick="endChat()" style="background-color:#999;">End Chat</button>
+  </div>
+
+  <div id="rechargeBox" style="display:none;">
+    <div class="pay-box" style="max-width:420px;">
+      <h3>Your free time is over</h3>
+      <p id="rechargeRateText"></p>
+      <label>Recharge Minutes</label>
+      <input type="number" id="rechargeMinutes" value="10" min="1">
+      <p id="rechargeAmountText"></p>
+      <img id="rechargeQrImage" src="" alt="UPI QR Code" style="width:180px;height:180px;">
+      <label><input type="checkbox" id="rechargePaidCheck" style="width:auto;"> I have completed the payment</label>
+      <button onclick="confirmRecharge()">Confirm Recharge</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Online Pharmacy Website - College Project
+</footer>
+
+<script src="script.js"></script>
+<script>
+  let sessionId = null;
+  let sessionStartTime = null;
+  let paidMinutes = 0;
+  let perMinRate = Number(localStorage.getItem("chatPerMinRate")) || 15;
+  let timerInterval = null;
+  let pollInterval = null;
+
+  if (!isLoggedIn()) {
+    document.getElementById("notLoggedMsg").style.display = "block";
+  } else {
+    checkExistingSession();
+  }
+
+  function checkExistingSession() {
+    fetch("/api/live-chat/session/" + getUserId())
+      .then(function (res) { return res.json(); })
+      .then(function (session) {
+        if (session) {
+          sessionId = session.id;
+          sessionStartTime = session.start_time;
+          paidMinutes = session.paid_minutes;
+          perMinRate = session.per_min_rate;
+          document.getElementById("chatTitle").innerText = "Chat with " + session.doctor_name;
+          openChatUi();
+        } else {
+          startNewChat();
+        }
+      });
+  }
+
+  function startNewChat() {
+    const doctorId = localStorage.getItem("chatDoctorId");
+    const doctorName = localStorage.getItem("chatDoctorName") || "Doctor";
+
+    if (!doctorId) {
+      alert("Please choose a doctor first");
+      window.location.href = "doctors.html";
+      return;
+    }
+
+    document.getElementById("chatTitle").innerText = "Chat with " + doctorName;
+
+    fetch("/api/live-chat/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: getUserId(),
+        doctorId: doctorId,
+        doctorName: doctorName,
+        patientName: getUserName(),
+        perMinRate: perMinRate
+      })
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        sessionId = data.sessionId;
+        sessionStartTime = data.startTime;
+        paidMinutes = 0;
+        openChatUi();
+      });
+  }
+
+  function openChatUi() {
+    document.getElementById("chatBox").style.display = "block";
+    document.getElementById("rechargeBox").style.display = "none";
+
+    loadLiveMessages();
+    pollInterval = setInterval(loadLiveMessages, 3000);
+
+    timerInterval = setInterval(updateTimer, 1000);
+    updateTimer();
+  }
+
+  function updateTimer() {
+    const allowedSeconds = (5 * 60) + (paidMinutes * 60);
+    const secondsPassed = Math.floor((Date.now() - sessionStartTime) / 1000);
+    const secondsLeft = allowedSeconds - secondsPassed;
+
+    if (secondsLeft <= 0) {
+      document.getElementById("timerBox").innerText = "Time is over";
+      clearInterval(timerInterval);
+      showRechargeBox();
+      return;
+    }
+
+    const mins = Math.floor(secondsLeft / 60);
+    const secs = secondsLeft % 60;
+    const label = secondsPassed < (5 * 60) ? "Free time left: " : "Paid time left: ";
+    document.getElementById("timerBox").innerText = label + mins + ":" + (secs < 10 ? "0" : "") + secs;
+  }
+
+  function showRechargeBox() {
+    document.getElementById("rechargeBox").style.display = "block";
+    document.getElementById("rechargeRateText").innerText = "This doctor charges Rs. " + perMinRate + " per minute.";
+    updateRechargeAmount();
+  }
+
+  document.getElementById("rechargeMinutes").addEventListener("input", updateRechargeAmount);
+
+  function updateRechargeAmount() {
+    const minutes = Number(document.getElementById("rechargeMinutes").value) || 0;
+    const amount = minutes * perMinRate;
+    document.getElementById("rechargeAmountText").innerText = "Amount to pay: Rs. " + amount;
+
+    fetch("/api/generate-qr?amount=" + amount + "&orderRef=CHAT" + sessionId)
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.success) {
+          document.getElementById("rechargeQrImage").src = data.qrImage;
+        }
+      });
+  }
+
+  function confirmRecharge() {
+    if (!document.getElementById("rechargePaidCheck").checked) {
+      alert("Please confirm the payment first");
+      return;
+    }
+
+    const minutes = Number(document.getElementById("rechargeMinutes").value) || 0;
+
+    fetch("/api/live-chat/recharge/" + sessionId, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ minutes: minutes })
+    })
+      .then(function (res) { return res.json(); })
+      .then(function () {
+        paidMinutes = paidMinutes + minutes;
+        document.getElementById("rechargePaidCheck").checked = false;
+        document.getElementById("chatBox").style.display = "block";
+        document.getElementById("rechargeBox").style.display = "none";
+        timerInterval = setInterval(updateTimer, 1000);
+        updateTimer();
+      });
+  }
+
+  function loadLiveMessages() {
+    fetch("/api/live-chat/messages/" + sessionId)
+      .then(function (res) { return res.json(); })
+      .then(function (messages) {
+        const box = document.getElementById("liveMessages");
+        let html = "";
+
+        if (messages.length === 0) {
+          html = "<p>Waiting for the doctor to join the chat...</p>";
+        }
+
+        for (let i = 0; i < messages.length; i++) {
+          const m = messages[i];
+          const cssClass = m.sender === "patient" ? "user" : "pharmacist";
+          const label = m.sender === "patient" ? "You" : "Doctor";
+          html = html + "<div class='chat-msg " + cssClass + "'><b>" + label + ":</b> " + m.message + "</div>";
+        }
+
+        box.innerHTML = html;
+        box.scrollTop = box.scrollHeight;
+      });
+  }
+
+  function sendLiveMessage() {
+    const input = document.getElementById("liveInput");
+    const message = input.value;
+
+    if (message === "") {
+      return;
+    }
+
+    fetch("/api/live-chat/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId: sessionId, sender: "patient", message: message })
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.success) {
+          input.value = "";
+          loadLiveMessages();
+        } else if (data.needRecharge) {
+          clearInterval(timerInterval);
+          perMinRate = data.perMinRate;
+          document.getElementById("chatBox").style.display = "none";
+          showRechargeBox();
+        }
+      });
+  }
+
+  function endChat() {
+    fetch("/api/live-chat/end/" + sessionId, { method: "POST" })
+      .then(function () {
+        clearInterval(timerInterval);
+        clearInterval(pollInterval);
+        window.location.href = "doctors.html";
+      });
+  }
+</script>
+
+</body>
+</html>

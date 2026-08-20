@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Chat with Doctor - MediCare</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>MediCare </h1>
+  </div>
+  <nav id="headerNav"></nav>
+</header>
+
+<div class="banner">
+  <h2>Chat with a Doctor</h2>
+  <p>First 5 minutes are free, after that pay per minute based on the doctor you pick</p>
+</div>
+
+<div class="container">
+  <div id="notLoggedMsg" style="display:none;" class="message warning">Please login first to chat with a doctor.</div>
+
+  <div id="doctorsGrid" class="medicine-grid">
+    <p>Loading doctors...</p>
+  </div>
+</div>
+
+<footer>
+  Online Pharmacy Website - College Project
+</footer>
+
+<script src="script.js"></script>
+<script>
+  if (!isLoggedIn()) {
+    document.getElementById("notLoggedMsg").style.display = "block";
+  }
+
+  fetch("/api/doctors")
+    .then(function (res) { return res.json(); })
+    .then(function (doctors) {
+      const grid = document.getElementById("doctorsGrid");
+      let html = "";
+
+      for (let i = 0; i < doctors.length; i++) {
+        const d = doctors[i];
+        html = html +
+          "<div class='medicine-card'>" +
+          "<img src='" + d.image_url + "' class='medicine-icon' alt='" + d.name + "' onerror=\"this.style.display='none';\">" +
+          "<h3>" + d.name + "</h3>" +
+          "<p>" + d.specialty + "</p>" +
+          "<p>" + d.experience + "</p>" +
+          "<p><span class='stars' style='font-size:14px;'>" + getStarsHtml(d.rating) + "</span> " + d.rating + "</p>" +
+          "<p class='price'>Rs. " + d.per_min_rate + " / min after 5 free minutes</p>" +
+          "<button onclick='startChat(" + d.id + ", \"" + d.name.replace(/"/g, "") + "\", " + d.per_min_rate + ")'>Chat Now</button>" +
+          "</div>";
+      }
+
+      document.getElementById("doctorsGrid").innerHTML = html;
+    });
+
+  function startChat(doctorId, doctorName, perMinRate) {
+    if (!isLoggedIn()) {
+      alert("Please login first");
+      window.location.href = "login.html";
+      return;
+    }
+
+    localStorage.setItem("chatDoctorId", doctorId);
+    localStorage.setItem("chatDoctorName", doctorName);
+    localStorage.setItem("chatPerMinRate", perMinRate);
+    window.location.href = "docchat.html";
+  }
+</script>
+
+</body>
+</html>

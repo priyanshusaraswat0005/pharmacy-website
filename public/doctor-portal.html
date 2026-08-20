@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Doctor Portal - MediCare</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>MediCare </h1>
+  </div>
+</header>
+
+<div class="container">
+
+  <div id="loginBox">
+    <h2>Doctor Login</h2>
+    <form id="doctorLoginForm">
+      <label>Doctor Password</label>
+      <input type="password" id="doctorPassword" required>
+      <button type="submit">Login</button>
+    </form>
+    <p>(For this project use password: doctor123)</p>
+    <p><a href="index.html">Not a doctor? Switch role</a></p>
+  </div>
+
+  <div id="doctorPanel" style="display:none;">
+    <div id="alertBanner"></div>
+
+    <h2>Patient Chat Requests</h2>
+    <div id="sessionListBox"></div>
+
+    <div id="doctorChatBox" style="display:none;">
+      <h3 id="chatWithPatientText"></h3>
+      <div class="chat-box" style="max-width:600px;">
+        <div class="chat-messages" id="doctorMessages" style="height:320px;"></div>
+        <div class="chat-input-row">
+          <input type="text" id="doctorInput" placeholder="Type your reply as doctor">
+          <button onclick="sendDoctorMessage()">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Online Pharmacy Website - College Project
+</footer>
+
+<script src="script.js"></script>
+<script>
+  let activeSessionId = null;
+  let knownSessionIds = [];
+
+  document.getElementById("doctorLoginForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    const pass = document.getElementById("doctorPassword").value;
+    if (pass === "doctor123") {
+      document.getElementById("loginBox").style.display = "none";
+      document.getElementById("doctorPanel").style.display = "block";
+
+      if ("Notification" in window) {
+        Notification.requestPermission();
+      }
+
+      loadSessions();
+      setInterval(loadSessions, 3000);
+    } else {
+      alert("Wrong password");
+    }
+  });
+
+  // makes a short beep sound using web audio, no external sound file needed
+  function playBeep() {
+    const context = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = context.createOscillator();
+    oscillator.type = "sine";
+    oscillator.frequency.value = 700;
+    oscillator.connect(context.destination);
+    oscillator.start();
+    oscillator.stop(context.currentTime + 0.3);
+  }
+
+  function loadSessions() {
+    fetch("/api/live-chat/sessions")
+      .then(function (res) { return res.json(); })
+      .then(function (sessions) {
+        let newOnesFound = false;
+
+        for (let i = 0; i < sessions.length; i++) {
+          if (knownSessionIds.indexOf(sessions[i].id) === -1) {
+            newOnesFound = true;
+          }
+        }
+
+        if (newOnesFound && knownSessionIds.length > 0) {
+          notifyNewPatient();
+        }
+
+        knownSessionIds = [];
+        let html = "";
+
+        for (let i = 0; i < sessions.length; i++) {
+          const s = sessions[i];
+          knownSessionIds.push(s.id);
+
+          html = html +
+            "<div class='cart-item'>" +
+            "<div><b>" + s.patient_name + "</b><br>Doctor: " + s.doctor_name + " | Status: " + s.status + " | Paid minutes: " + s.paid_minutes + "</div>" +
+            "<button onclick='openSession(" + s.id + ", \"" + s.patient_name.replace(/"/g, "") + "\")'>Open Chat</button>" +
+            "</div>";
+        }
+
+        if (html === "") {
+          html = "<p>No patients waiting right now.</p>";
+        }
+
+        document.getElementById("sessionListBox").innerHTML = html;
+      });
+  }
+
+  function notifyNewPatient() {
+    playBeep();
+
+    document.getElementById("alertBanner").innerHTML = "<div class='message warning'>New patient is waiting for chat!</div>";
+    setTimeout(function () {
+      document.getElementById("alertBanner").innerHTML = "";
+    }, 5000);
+
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("MediCare Doctor Portal", { body: "A new patient is waiting for chat" });
+    }
+  }
+
+  function openSession(id, patientName) {
+    activeSessionId = id;
+    document.getElementById("doctorChatBox").style.display = "block";
+    document.getElementById("chatWithPatientText").innerText = "Chatting with " + patientName;
+
+    fetch("/api/live-chat/join/" + id, { method: "POST" });
+    loadDoctorMessages();
+  }
+
+  function loadDoctorMessages() {
+    if (!activeSessionId) {
+      return;
+    }
+
+    fetch("/api/live-chat/messages/" + activeSessionId)
+      .then(function (res) { return res.json(); })
+      .then(function (messages) {
+        const box = document.getElementById("doctorMessages");
+        let html = "";
+
+        for (let i = 0; i < messages.length; i++) {
+          const m = messages[i];
+          const cssClass = m.sender === "doctor" ? "user" : "pharmacist";
+          const label = m.sender === "doctor" ? "You" : "Patient";
+          html = html + "<div class='chat-msg " + cssClass + "'><b>" + label + ":</b> " + m.message + "</div>";
+        }
+
+        box.innerHTML = html;
+        box.scrollTop = box.scrollHeight;
+      });
+  }
+
+  setInterval(function () {
+    if (activeSessionId) {
+      loadDoctorMessages();
+    }
+  }, 3000);
+
+  function sendDoctorMessage() {
+    const input = document.getElementById("doctorInput");
+    const message = input.value;
+
+    if (message === "" || !activeSessionId) {
+      return;
+    }
+
+    fetch("/api/live-chat/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId: activeSessionId, sender: "doctor", message: message })
+    })
+      .then(function (res) { return res.json(); })
+      .then(function () {
+        input.value = "";
+        loadDoctorMessages();
+      });
+  }
+</script>
+
+</body>
+</html>

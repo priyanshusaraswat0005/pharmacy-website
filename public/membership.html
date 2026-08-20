@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MediCare Plus Membership</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>MediCare </h1>
+  </div>
+  <nav id="headerNav"></nav>
+</header>
+
+<div class="banner">
+  <h2>MediCare Plus Membership</h2>
+  <p>Free delivery on every order and extra discount on all medicines</p>
+</div>
+
+<div class="container">
+  <div id="notLoggedMsg" style="display:none;" class="message warning">Please login first to become a member.</div>
+
+  <div id="memberBox">
+
+    <div id="alreadyMemberBox" style="display:none;" class="message success"></div>
+
+    <div id="plansSection">
+      <h3>Choose Your Plan</h3>
+      <div class="medicine-grid" id="plansGrid"></div>
+    </div>
+
+    <div id="joinBox" style="display:none; margin-top:25px;">
+      <div class="pay-box" style="max-width:420px;">
+        <h3 id="selectedPlanTitle"></h3>
+        <p id="selectedPlanBenefits"></p>
+        <img id="memberQrImage" src="" alt="UPI QR Code" style="width:180px;height:180px;">
+        <label><input type="checkbox" id="memberPaidCheck" style="width:auto;"> I have completed the payment</label>
+        <button onclick="confirmMembership()">Confirm Membership</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Online Pharmacy Website - College Project
+</footer>
+
+<script src="script.js"></script>
+<script>
+  let membershipInfo = null;
+  let selectedPlan = null;
+  let userIsMember = false;
+
+  if (!isLoggedIn()) {
+    document.getElementById("notLoggedMsg").style.display = "block";
+    document.getElementById("memberBox").style.display = "none";
+  }
+
+  fetch("/api/membership-info")
+    .then(function (res) { return res.json(); })
+    .then(function (info) {
+      membershipInfo = info;
+      renderPlans();
+
+      if (isLoggedIn()) {
+        return fetch("/api/user/" + getUserId()).then(function (res) { return res.json(); });
+      }
+    })
+    .then(function (user) {
+      if (user && user.is_member === 1) {
+        userIsMember = true;
+        document.getElementById("alreadyMemberBox").style.display = "block";
+        document.getElementById("alreadyMemberBox").innerText =
+          "You are a MediCare Plus member (" + user.member_plan + " plan). Valid until " + user.member_expiry + ".";
+      }
+    });
+
+  function renderPlans() {
+    let html = "";
+    for (let i = 0; i < membershipInfo.plans.length; i++) {
+      const plan = membershipInfo.plans[i];
+      const perMonth = Math.round(plan.price / (plan.days / 30));
+
+      let badge = "";
+      if (plan.id === "annual") {
+        badge = "<p style='color:green; font-weight:bold;'>Best Value</p>";
+      }
+
+      html = html +
+        "<div class='pack-card' style='text-align:center;'>" +
+        "<h3>" + plan.label + "</h3>" +
+        badge +
+        "<p class='price'>Rs. " + plan.price + "</p>" +
+        "<p>Roughly Rs. " + perMonth + " per month</p>" +
+        "<p>Valid for " + plan.days + " days</p>" +
+        "<button onclick='choosePlan(\"" + plan.id + "\")'>Choose " + plan.label + "</button>" +
+        "</div>";
+    }
+    document.getElementById("plansGrid").innerHTML = html;
+  }
+
+  function choosePlan(planId) {
+    if (!isLoggedIn()) {
+      alert("Please login first");
+      window.location.href = "login.html";
+      return;
+    }
+
+    for (let i = 0; i < membershipInfo.plans.length; i++) {
+      if (membershipInfo.plans[i].id === planId) {
+        selectedPlan = membershipInfo.plans[i];
+      }
+    }
+
+    document.getElementById("selectedPlanTitle").innerText = selectedPlan.label + " Plan - Rs. " + selectedPlan.price;
+    document.getElementById("selectedPlanBenefits").innerText =
+      "Free delivery and " + membershipInfo.discountPercent + "% discount on medicines for " + selectedPlan.days + " days.";
+    document.getElementById("joinBox").style.display = "block";
+    document.getElementById("memberPaidCheck").checked = false;
+
+    fetch("/api/generate-qr?amount=" + selectedPlan.price + "&orderRef=MEMBERSHIP" + selectedPlan.id)
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.success) {
+          document.getElementById("memberQrImage").src = data.qrImage;
+        }
+      });
+  }
+
+  function confirmMembership() {
+    if (!document.getElementById("memberPaidCheck").checked) {
+      alert("Please confirm the payment first");
+      return;
+    }
+
+    fetch("/api/membership/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: getUserId(), planId: selectedPlan.id })
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.success) {
+          document.getElementById("joinBox").style.display = "none";
+          document.getElementById("alreadyMemberBox").style.display = "block";
+          document.getElementById("alreadyMemberBox").innerText =
+            "You are now a MediCare Plus member (" + selectedPlan.label + " plan). Valid until " + data.expiry + ".";
+        }
+      });
+  }
+</script>
+
+</body>
+</html>

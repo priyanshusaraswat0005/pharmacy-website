@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Login - MediCare</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .login-page-wrap {
+    max-width: 420px;
+    margin: 45px auto;
+  }
+  .login-badge {
+    width: 64px;
+    height: 64px;
+    background-color: #232f3e;
+    color: #ff9900;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    font-weight: bold;
+    margin: 0 auto 14px auto;
+  }
+  .login-card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    padding: 32px 30px 24px 30px;
+    text-align: center;
+  }
+  .login-card h2 {
+    margin: 0 0 4px 0;
+    font-size: 22px;
+  }
+  .login-card p.sub {
+    color: #565959;
+    font-size: 14px;
+    margin: 0 0 20px 0;
+  }
+  .login-card form {
+    box-shadow: none;
+    border: none;
+    padding: 0;
+    max-width: 100%;
+    text-align: left;
+  }
+  .login-card button {
+    width: 100%;
+    margin-top: 16px;
+  }
+  .login-strip {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin: 22px 0 10px 0;
+  }
+  .login-strip span {
+    width: 26px;
+    height: 5px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+  .login-links {
+    text-align: center;
+    font-size: 14px;
+    margin-top: 18px;
+  }
+  .login-links a {
+    color: #007185;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>MediCare <span>Apni Dawai, Apne Ghar</span></h1>
+  </div>
+  <nav id="headerNav"></nav>
+</header>
+
+<div class="container">
+  <div class="login-page-wrap">
+
+    <div class="login-badge">M+</div>
+
+    <div class="login-card">
+      <h2>Sign in to MediCare</h2>
+      <p class="sub">Order medicines, book lab tests and manage your health in one place.</p>
+
+      <div id="msgBox"></div>
+
+      <form id="loginForm">
+        <label>Email</label>
+        <input type="email" id="email" autocapitalize="off" autocorrect="off" spellcheck="false" required>
+
+        <label>Password</label>
+        <input type="password" id="password" required>
+
+        <button type="submit">Sign In</button>
+      </form>
+
+      <div class="login-strip">
+        <span style="background-color:#ff9900;"></span>
+        <span style="background-color:#232f3e;"></span>
+        <span style="background-color:#B12704;"></span>
+        <span style="background-color:#007185;"></span>
+      </div>
+
+      <div class="login-links">
+        <p>New to MediCare? <a href="register.html">Create your account</a></p>
+        <p><a href="index.html">Not a patient? Switch role</a></p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  Online Pharmacy Website - College Project
+</footer>
+
+<script src="script.js"></script>
+<script>
+  document.getElementById("loginForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email, password: password })
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.success) {
+          localStorage.setItem("userId", data.userId);
+          localStorage.setItem("userName", data.name);
+
+          fetch("/api/user/" + data.userId)
+            .then(function (res) { return res.json(); })
+            .then(function (user) {
+              saveProfileCache(user.address, user.phone);
+              window.location.href = "home.html";
+            })
+            .catch(function () {
+              window.location.href = "home.html";
+            });
+        } else {
+          document.getElementById("msgBox").innerHTML = "<div class='message error'>" + data.message + "</div>";
+        }
+      })
+      .catch(function () {
+        document.getElementById("msgBox").innerHTML = "<div class='message error'>Could not connect to server, please try again.</div>";
+      });
+  });
+</script>
+
+</body>
+</html>

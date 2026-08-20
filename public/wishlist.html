@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>My Wishlist</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>MediCare <span>Apni Dawai, Apne Ghar</span></h1>
+  </div>
+  <nav id="headerNav"></nav>
+</header>
+
+<div class="container">
+  <h2>My Wishlist</h2>
+  <div id="wishlistGrid" class="medicine-grid"></div>
+</div>
+
+<footer>
+  Online Pharmacy Website - College Project
+</footer>
+
+<script src="script.js"></script>
+<script>
+  function renderWishlist() {
+    const list = getWishlist();
+    const grid = document.getElementById("wishlistGrid");
+
+    if (list.length === 0) {
+      grid.innerHTML = "<p>Your wishlist is empty. Tap the heart icon on any medicine to save it here.</p>";
+      return;
+    }
+
+    let html = "";
+    for (let i = 0; i < list.length; i++) {
+      const item = list[i];
+      html = html +
+        "<div class='medicine-card'>" +
+        "<h3>" + item.name + "</h3>" +
+        "<p class='price'>Rs. " + item.price + "</p>" +
+        "<div class='card-buttons'>" +
+        "<a class='btn' href='product.html?id=" + item.id + "'>View</a>" +
+        "<button onclick='removeFromWishlist(" + item.id + ")'>Remove</button>" +
+        "</div>" +
+        "</div>";
+    }
+    grid.innerHTML = html;
+  }
+
+  function removeFromWishlist(id) {
+    toggleWishlist(id);
+    renderWishlist();
+  }
+
+  renderWishlist();
+</script>
+
+</body>
+</html>

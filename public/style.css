@@ -1,0 +1,531 @@
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #eaeded;
+  color: #0f1111;
+  font-size: 17px;
+}
+
+header {
+  background-color: #131921;
+  color: white;
+  padding: 14px 25px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 23px;
+}
+
+header h1 span {
+  display: block;
+  font-size: 12px;
+  color: #ff9900;
+  font-weight: normal;
+}
+
+nav a {
+  color: white;
+  text-decoration: none;
+  margin-left: 18px;
+  font-size: 15px;
+  font-weight: normal;
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+}
+
+nav a:hover {
+  border: 1px solid white;
+}
+
+.banner {
+  background-color: #232f3e;
+  color: white;
+  text-align: center;
+  padding: 25px 15px 40px 15px;
+}
+
+.banner h2 {
+  margin: 0 0 6px 0;
+  font-size: 26px;
+}
+
+.banner p {
+  margin: 0;
+  font-size: 16px;
+  color: #dce8ff;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 20px auto;
+  padding: 0 15px;
+}
+
+.category-chips {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.chip {
+  background-color: white;
+  border: 1px solid #d5d9d9;
+  color: #0f1111;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: normal;
+}
+
+.chip.active {
+  background-color: #232f3e;
+  color: white;
+  border-color: #232f3e;
+}
+
+.search-box {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.search-box input, .search-box select {
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #999;
+  border-radius: 8px;
+}
+
+.medicine-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.container h2 {
+  font-size: 22px;
+  margin-top: 0;
+  color: #0f1111;
+}
+
+.container h3 {
+  font-size: 18px;
+  color: #0f1111;
+}
+
+.medicine-card {
+  background-color: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  position: relative;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.medicine-card:hover {
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  transform: translateY(-2px);
+}
+
+.heart-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 22px;
+  color: #999;
+  cursor: pointer;
+  background: white;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  line-height: 30px;
+}
+
+.heart-btn.active {
+  color: #ff6161;
+}
+
+.medicine-icon {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.medicine-icon-big {
+  width: 100%;
+  max-width: 340px;
+  height: 240px;
+  object-fit: cover;
+  display: block;
+  margin-bottom: 12px;
+  border-radius: 10px;
+}
+
+.medicine-card h3 {
+  font-size: 18px;
+  margin: 10px 0 4px 0;
+}
+
+.medicine-card p {
+  margin: 5px 0;
+  font-size: 15px;
+}
+
+.price {
+  color: #B12704;
+  font-weight: bold;
+  font-size: 20px;
+}
+
+.stars {
+  color: #ffa41c;
+  font-size: 18px;
+  letter-spacing: 2px;
+}
+
+.discount-badge {
+  background-color: #ff6161;
+  color: white;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-weight: bold;
+}
+
+.mrp-strike {
+  color: #565959;
+  text-decoration: line-through;
+  font-weight: normal;
+  font-size: 15px;
+  margin-right: 6px;
+}
+
+.rx-tag {
+  background-color: #ff6161;
+  color: white;
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-weight: bold;
+}
+
+.cold-tag {
+  background-color: #17a2b8;
+  color: white;
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-weight: bold;
+}
+
+.card-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.card-buttons button, .card-buttons a {
+  flex: 1;
+  font-size: 14px;
+  padding: 9px 6px;
+}
+
+button, .btn {
+  background-color: #ffd814;
+  color: #0f1111;
+  border: 1px solid #fcd200;
+  padding: 11px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: normal;
+  text-decoration: none;
+  display: inline-block;
+  transition: background-color 0.15s ease;
+}
+
+button:hover, .btn:hover {
+  background-color: #f7ca00;
+}
+
+.btn-outline {
+  background-color: white;
+  color: #0f1111;
+  border: 1px solid #d5d9d9;
+}
+
+.btn-outline:hover {
+  background-color: #f0f2f2;
+}
+
+.out-of-stock {
+  color: #ff6161;
+  font-weight: bold;
+}
+
+.pack-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 18px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.pack-card:hover {
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  transform: translateY(-2px);
+}
+
+.pack-card h3 {
+  margin-top: 0;
+  color: #232f3e;
+}
+
+form {
+  background-color: white;
+  padding: 22px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  max-width: 450px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+form label {
+  display: block;
+  margin-top: 12px;
+  margin-bottom: 5px;
+  font-size: 15px;
+  font-weight: bold;
+}
+
+form input, form select, form textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #c2c2c2;
+  border-radius: 8px;
+  box-sizing: border-box;
+  font-size: 15px;
+}
+
+form input:focus, form select:focus, form textarea:focus {
+  outline: none;
+  border-color: #007185;
+  box-shadow: 0 0 0 2px rgba(0,113,133,0.15);
+}
+
+form button {
+  margin-top: 18px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+table th, table td {
+  border: 1px solid #e0e0e0;
+  padding: 10px;
+  text-align: left;
+  font-size: 15px;
+}
+
+table th {
+  background-color: #232f3e;
+  color: white;
+}
+
+.cart-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: white;
+  border: 1px solid #e0e0e0;
+  padding: 14px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.total-box {
+  text-align: right;
+  font-size: 20px;
+  font-weight: bold;
+  margin-top: 15px;
+}
+
+.message {
+  padding: 12px;
+  margin-bottom: 15px;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.message.success {
+  background-color: #dff0d8;
+  color: #3c763d;
+  border: 1px solid #b2d8b2;
+}
+
+.message.error {
+  background-color: #f2dede;
+  color: #a94442;
+  border: 1px solid #eab6b6;
+}
+
+.message.warning {
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffe69c;
+}
+
+.pay-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 15px;
+}
+
+.pay-tab {
+  background-color: white;
+  color: #232f3e;
+  border: 2px solid #232f3e;
+  font-size: 15px;
+}
+
+.pay-tab.active {
+  background-color: #232f3e;
+  color: white;
+}
+
+.pay-box {
+  background-color: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 18px;
+  max-width: 400px;
+  margin-bottom: 15px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.pay-box input, .pay-box select {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #c2c2c2;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.chat-box {
+  background-color: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 15px;
+  max-width: 450px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.chat-messages {
+  height: 220px;
+  overflow-y: auto;
+  border: 1px solid #eee;
+  padding: 10px;
+  margin-bottom: 10px;
+  background-color: #fafafa;
+  border-radius: 8px;
+}
+
+.chat-msg {
+  padding: 8px 12px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  max-width: 75%;
+  font-size: 14px;
+}
+
+.chat-msg.user {
+  background-color: #232f3e;
+  color: white;
+  margin-left: auto;
+  text-align: right;
+}
+
+.chat-msg.pharmacist {
+  background-color: #e0e0e0;
+  color: #212121;
+}
+
+.chat-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.chat-input-row input {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #c2c2c2;
+  border-radius: 8px;
+}
+
+.profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  background-color: white;
+  padding: 18px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+}
+
+footer {
+  text-align: center;
+  padding: 18px;
+  font-size: 14px;
+  color: #555;
+  margin-top: 30px;
+}
+
+@media (max-width: 600px) {
+  header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .header-search {
+    width: 100%;
+  }
+  nav a {
+    margin-left: 0;
+    margin-right: 10px;
+    padding: 6px 8px;
+  }
+  .medicine-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+}

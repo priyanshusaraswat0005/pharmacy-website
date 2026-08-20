@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Checkout</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>MediCare</h1>
+  </div>
+  <nav id="headerNav"></nav>
+</header>
+
+<div class="container">
+  <h2>Checkout</h2>
+  <div id="notLoggedMsg" style="display:none;">
+    <p>Please login first to place an order.</p>
+    <a class="btn" href="login.html">Go to Login</a>
+  </div>
+
+  <div id="checkoutForm">
+    <div id="orderSummary"></div>
+
+    <div class="pay-box" style="max-width:400px;">
+      <label>Have a Coupon Code?</label>
+      <input type="text" id="couponInput" placeholder="Try FIRST10 or FLAT50">
+      <button type="button" onclick="applyCoupon()">Apply Coupon</button>
+      <p id="couponMessage"></p>
+    </div>
+
+    <div class="message success" id="deliveryEstimateBox"></div>
+
+    <form id="deliveryForm">
+      <label>Delivery Address</label>
+      <textarea id="address" rows="3" required></textarea>
+
+      <label>Phone Number</label>
+      <input type="tel" id="phone" placeholder="10 digit mobile number" required pattern="[0-9]{10}">
+
+      <div id="prescriptionField" style="display:none;">
+        <label>Upload Prescription (required for some medicines)</label>
+        <input type="file" id="prescriptionFile" accept="image/*,.pdf" onchange="runPrescriptionOcr()">
+        <p id="ocrStatusText"></p>
+        <div id="ocrResultBox" style="display:none;">
+          <label>Text Found in Prescription (auto scan, please check manually)</label>
+          <textarea id="ocrResultText" rows="3" readonly></textarea>
+        </div>
+      </div>
+    </form>
+
+    <div id="coldChainNote" style="display:none;" class="message warning">Your order has a medicine that needs cold storage. It will be delivered in an insulated cold pack.</div>
+
+    <h3>Choose Payment Method</h3>
+    <div class="pay-tabs">
+      <button type="button" class="pay-tab active" onclick="selectPayment('qr')">QR Code</button>
+      <button type="button" class="pay-tab" onclick="selectPayment('upi')">UPI ID</button>
+      <button type="button" class="pay-tab" onclick="selectPayment('netbanking')">Netbanking</button>
+      <button type="button" class="pay-tab" onclick="selectPayment('insurance')">Insurance Claim</button>
+      <button type="button" class="pay-tab" onclick="selectPayment('cod')">Cash on Delivery</button>
+    </div>
+
+    <div id="payQr" class="pay-box">
+      <p>Scan this QR code with any UPI app (PhonePe, Google Pay, Paytm) to pay.</p>
+      <img id="qrImage" src="" alt="UPI QR Code" style="width:200px;height:200px;">
+      <p id="qrLoadingText">Loading QR code...</p>
+      <label><input type="checkbox" id="qrPaidCheck" style="width:auto;"> I have completed the payment</label>
+    </div>
+
+    <div id="payUpi" class="pay-box" style="display:none;">
+      <label>Enter your UPI ID</label>
+      <input type="text" id="upiIdInput" placeholder="yourname@bank">
+      <button type="button" onclick="sendUpiRequest()">Send Payment Request</button>
+      <p id="upiStatusText"></p>
+    </div>
+
+    <div id="payNetbanking" class="pay-box" style="display:none;">
+      <label>Select Your Bank</label>
+      <select id="bankSelect">
+        <option>State Bank of India</option>
+        <option>HDFC Bank</option>
+        <option>ICICI Bank</option>
+        <option>Axis Bank</option>
+        <option>Punjab National Bank</option>
+      </select>
+      <button type="button" onclick="payNetbanking()">Pay via Netbanking</button>
+      <p id="netbankingStatusText"></p>
+    </div>
+
+    <div id="payInsurance" class="pay-box" style="display:none;">
+      <label>Insurance Policy Number</label>
+      <input type="text" id="insurancePolicyInput" placeholder="Enter your policy number">
+      <label>Insurance Provider</label>
+      <input type="text" id="insuranceProviderInput" placeholder="Enter insurance company name">
+      <button type="button" onclick="submitInsuranceClaim()">Submit Claim</button>
+      <p id="insuranceStatusText"></p>
+    </div>
+
+    <div id="payCod" class="pay-box" style="display:none;">
+      <p>You will pay in cash when the order is delivered to your address.</p>
+    </div>
+
+    <br>
+    <button type="button" onclick="placeOrder()">Place Order</button>
+  </div>
+
+  <div id="orderSuccess" style="display:none;">
+    <div class="message success">Your order has been placed. Order ID: <span id="orderIdText"></span></div>
+    <p>Order confirmation has been sent to your WhatsApp number automatically.</p>
+    <a class="btn" href="profile.html">View My Orders</a>
+  </div>
+</div>
+
+<footer>
+  Online Pharmacy Website - College Project
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+<script src="script.js"></script>
+<script>
+  if (!isLoggedIn()) {
+    document.getElementById("notLoggedMsg").style.display = "block";
+    document.getElementById("checkoutForm").style.display = "none";
+  } else {
+    const cachedProfile = getProfileCache();
+    if (cachedProfile.address) {
+      document.getElementById("address").value = cachedProfile.address;
+    }
+    if (cachedProfile.phone) {
+      document.getElementById("phone").value = cachedProfile.phone;
+    }
+
+    fetch("/api/user/" + getUserId())
+      .then(function (res) { return res.json(); })
+      .then(function (user) {
+        if (user.address) {
+          document.getElementById("address").value = user.address;
+        }
+        if (user.phone) {
+          document.getElementById("phone").value = user.phone;
+        }
+        saveProfileCache(user.address, user.phone);
+      });
+  }
+
+  const cart = getCart();
+  let needsRx = false;
+  let hasColdChain = false;
+  let cartTotal = 0;
+  let memberDiscountAmount = 0;
+  let deliveryCharge = 0;
+  let couponDiscount = 0;
+  let finalTotal = 0;
+  let isMember = false;
+  let selectedPayment = "qr";
+  let membershipInfo = { discountPercent: 10, deliveryCharge: 40, freeDeliveryAbove: 499 };
+
+  for (let i = 0; i < cart.length; i++) {
+    const item = cart[i];
+    cartTotal = cartTotal + (item.price * item.qty);
+    if (item.needsPrescription === 1 || item.needsPrescription === true) {
+      needsRx = true;
+    }
+    if (item.coldChain === 1 || item.coldChain === true) {
+      hasColdChain = true;
+    }
+  }
+
+  if (needsRx) {
+    document.getElementById("prescriptionField").style.display = "block";
+  }
+  if (hasColdChain) {
+    document.getElementById("coldChainNote").style.display = "block";
+  }
+
+  function renderSummary() {
+    memberDiscountAmount = isMember ? Math.round(cartTotal * membershipInfo.discountPercent / 100) : 0;
+    const afterMemberDiscount = cartTotal - memberDiscountAmount;
+    deliveryCharge = (isMember || cartTotal >= membershipInfo.freeDeliveryAbove) ? 0 : membershipInfo.deliveryCharge;
+    finalTotal = afterMemberDiscount - couponDiscount + deliveryCharge;
+
+    let html = "<h3>Order Summary</h3>";
+    for (let i = 0; i < cart.length; i++) {
+      const item = cart[i];
+      html = html + "<p>" + item.name + " x " + item.qty + " = Rs. " + (item.price * item.qty) + "</p>";
+    }
+    html = html + "<p>Subtotal: Rs. " + cartTotal + "</p>";
+
+    if (isMember) {
+      html = html + "<p style='color:#232f3e;'>Member Discount (" + membershipInfo.discountPercent + "%): -Rs. " + memberDiscountAmount + "</p>";
+    }
+    if (couponDiscount > 0) {
+      html = html + "<p style='color:#232f3e;'>Coupon Discount: -Rs. " + couponDiscount + "</p>";
+    }
+
+    if (deliveryCharge > 0) {
+      html = html + "<p>Delivery Charge: Rs. " + deliveryCharge + "</p>";
+    } else {
+      html = html + "<p style='color:green;'>Free Delivery" + (isMember ? " (Member Benefit)" : "") + "</p>";
+    }
+
+    html = html + "<p class='price'>Total: Rs. " + finalTotal + "</p>";
+
+    if (!isMember) {
+      html = html + "<div class='message success'>Become a MediCare Plus member and save Rs. " + Math.round(cartTotal * membershipInfo.discountPercent / 100) + " on this order, plus free delivery. <a href='membership.html'>Learn more</a></div>";
+    }
+
+    document.getElementById("orderSummary").innerHTML = html;
+    loadQrCode();
+  }
+
+  fetch("/api/membership-info")
+    .then(function (res) { return res.json(); })
+    .then(function (info) {
+      membershipInfo = info;
+
+      if (isLoggedIn()) {
+        fetch("/api/user/" + getUserId())
+          .then(function (res) { return res.json(); })
+          .then(function (user) {
+            isMember = user.is_member === 1;
+            renderSummary();
+          });
+      } else {
+        renderSummary();
+      }
+    });
+
+  function applyCoupon() {
+    const code = document.getElementById("couponInput").value;
+    const afterMemberDiscount = cartTotal - memberDiscountAmount;
+
+    fetch("/api/apply-coupon", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: code, total: afterMemberDiscount })
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.success) {
+          couponDiscount = data.discount;
+          document.getElementById("couponMessage").innerText = "Coupon applied! You saved Rs. " + couponDiscount;
+          renderSummary();
+        } else {
+          document.getElementById("couponMessage").innerText = data.message;
+        }
+      });
+  }
+
+  document.getElementById("deliveryEstimateBox").innerText = "Estimated Delivery: " + getEstimatedDelivery();
+
+  // scans the prescription image and shows the text, pharmacist still checks manually
+  function runPrescriptionOcr() {
+    const fileInput = document.getElementById("prescriptionFile");
+    if (fileInput.files.length === 0) {
+      return;
+    }
+
+    const file = fileInput.files[0];
+    if (file.type.indexOf("image") === -1) {
+      document.getElementById("ocrStatusText").innerText = "OCR scan works only on image files, PDF will be checked manually by pharmacist.";
+      return;
+    }
+
+    document.getElementById("ocrStatusText").innerText = "Scanning prescription, please wait...";
+
+    Tesseract.recognize(file, "eng")
+      .then(function (result) {
+        document.getElementById("ocrStatusText").innerText = "Scan complete.";
+        document.getElementById("ocrResultBox").style.display = "block";
+        document.getElementById("ocrResultText").value = result.data.text;
+      })
+      .catch(function () {
+        document.getElementById("ocrStatusText").innerText = "Could not scan the image, pharmacist will check it manually.";
+      });
+  }
+
+  function loadQrCode() {
+    const orderRef = "ORD" + Date.now();
+    fetch("/api/generate-qr?amount=" + finalTotal + "&orderRef=" + orderRef)
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.success) {
+          document.getElementById("qrImage").src = data.qrImage;
+          document.getElementById("qrLoadingText").innerText = "";
+        } else {
+          document.getElementById("qrLoadingText").innerText = "Could not load QR code.";
+        }
+      });
+  }
+
+  function selectPayment(method) {
+    selectedPayment = method;
+
+    document.getElementById("payQr").style.display = "none";
+    document.getElementById("payUpi").style.display = "none";
+    document.getElementById("payNetbanking").style.display = "none";
+    document.getElementById("payInsurance").style.display = "none";
+    document.getElementById("payCod").style.display = "none";
+
+    const tabs = document.getElementsByClassName("pay-tab");
+    for (let i = 0; i < tabs.length; i++) {
+      tabs[i].classList.remove("active");
+    }
+    event.target.classList.add("active");
+
+    if (method === "qr") {
+      document.getElementById("payQr").style.display = "block";
+    }
+    if (method === "upi") {
+      document.getElementById("payUpi").style.display = "block";
+    }
+    if (method === "netbanking") {
+      document.getElementById("payNetbanking").style.display = "block";
+    }
+    if (method === "insurance") {
+      document.getElementById("payInsurance").style.display = "block";
+    }
+    if (method === "cod") {
+      document.getElementById("payCod").style.display = "block";
+    }
+  }
+
+  function sendUpiRequest() {
+    const upiId = document.getElementById("upiIdInput").value;
+    if (upiId === "") {
+      alert("Please enter your UPI ID");
+      return;
+    }
+    document.getElementById("upiStatusText").innerText = "Payment request sent to " + upiId + ". Please approve in your UPI app.";
+  }
+
+  function payNetbanking() {
+    document.getElementById("netbankingStatusText").innerText = "Connecting to bank server...";
+    setTimeout(function () {
+      document.getElementById("netbankingStatusText").innerText = "Payment successful via " + document.getElementById("bankSelect").value;
+    }, 1500);
+  }
+
+  function submitInsuranceClaim() {
+    const policy = document.getElementById("insurancePolicyInput").value;
+    const provider = document.getElementById("insuranceProviderInput").value;
+    if (policy === "" || provider === "") {
+      alert("Please fill policy number and insurance provider");
+      return;
+    }
+    document.getElementById("insuranceStatusText").innerText = "Claim submitted for approval with " + provider + ". Our pharmacist will verify it.";
+  }
+
+  function placeOrder() {
+    if (cart.length === 0) {
+      alert("Your cart is empty");
+      return;
+    }
+
+    const address = document.getElementById("address").value;
+    const phone = document.getElementById("phone").value;
+
+    if (address === "" || phone === "") {
+      alert("Please fill address and phone number");
+      return;
+    }
+
+    const fileInput = document.getElementById("prescriptionFile");
+    if (needsRx && fileInput.files.length === 0) {
+      alert("Please upload prescription, some medicines in your cart need it");
+      return;
+    }
+
+    let paymentMethod = "";
+    let paymentStatus = "";
+    let insuranceStatus = "";
+
+    if (selectedPayment === "qr") {
+      if (!document.getElementById("qrPaidCheck").checked) {
+        alert("Please confirm you have completed the QR payment");
+        return;
+      }
+      paymentMethod = "UPI QR Code";
+      paymentStatus = "Paid";
+    } else if (selectedPayment === "upi") {
+      const upiId = document.getElementById("upiIdInput").value;
+      if (upiId === "") {
+        alert("Please enter your UPI ID and send payment request first");
+        return;
+      }
+      paymentMethod = "UPI (" + upiId + ")";
+      paymentStatus = "Paid";
+    } else if (selectedPayment === "netbanking") {
+      if (document.getElementById("netbankingStatusText").innerText.indexOf("successful") === -1) {
+        alert("Please complete netbanking payment first");
+        return;
+      }
+      paymentMethod = "Netbanking (" + document.getElementById("bankSelect").value + ")";
+      paymentStatus = "Paid";
+    } else if (selectedPayment === "insurance") {
+      if (document.getElementById("insuranceStatusText").innerText.indexOf("submitted") === -1) {
+        alert("Please submit your insurance claim first");
+        return;
+      }
+      paymentMethod = "Insurance Claim (" + document.getElementById("insuranceProviderInput").value + ")";
+      paymentStatus = "Awaiting Insurance Approval";
+      insuranceStatus = "Submitted";
+    } else if (selectedPayment === "cod") {
+      paymentMethod = "Cash on Delivery";
+      paymentStatus = "Pending (Pay on Delivery)";
+    }
+
+    const deliveryDate = getEstimatedDeliveryDateOnly();
+
+    const formData = new FormData();
+    formData.append("userId", getUserId());
+    formData.append("items", JSON.stringify(cart));
+    formData.append("total", finalTotal);
+    formData.append("address", address);
+    formData.append("phone", phone);
+    formData.append("deliveryDate", deliveryDate);
+    formData.append("paymentMethod", paymentMethod);
+    formData.append("paymentStatus", paymentStatus);
+    formData.append("insuranceStatus", insuranceStatus);
+    formData.append("coldChainStatus", hasColdChain ? "Cold Pack Required" : "");
+
+    if (fileInput.files.length > 0) {
+      formData.append("prescription", fileInput.files[0]);
+    }
+
+    fetch("/api/order", {
+      method: "POST",
+      body: formData
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.success) {
+          let msg = "Order Confirmed - MediCare Pharmacy%0A";
+          msg = msg + "Order ID: " + data.orderId + "%0A";
+          msg = msg + "Items: ";
+          for (let i = 0; i < cart.length; i++) {
+            msg = msg + cart[i].name + " x " + cart[i].qty + ", ";
+          }
+          msg = msg + "%0ATotal: Rs. " + finalTotal + "%0A";
+          msg = msg + "Payment Method: " + paymentMethod + "%0A";
+          msg = msg + "Estimated Delivery: " + getEstimatedDelivery() + "%0A";
+          msg = msg + "Delivery Address: " + address;
+
+          window.open("https://wa.me/91" + phone + "?text=" + msg, "_blank");
+
+          localStorage.removeItem("cart");
+          document.getElementById("checkoutForm").style.display = "none";
+          document.getElementById("orderSuccess").style.display = "block";
+          document.getElementById("orderIdText").innerText = data.orderId;
+        } else {
+          alert("Something went wrong, try again");
+        }
+      })
+      .catch(function () {
+        alert("Could not connect to server, please check your internet and try again");
+      });
+  }
+</script>
+
+</body>
+</html>

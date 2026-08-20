@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Pharmacist Panel</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>MediCare <span>Pharmacist Portal</span></h1>
+  </div>
+</header>
+
+<div class="container">
+
+  <div id="loginBox">
+    <h2>Pharmacist Login</h2>
+    <form id="adminLoginForm">
+      <label>Admin Password</label>
+      <input type="password" id="adminPassword" required>
+      <button type="submit">Login</button>
+    </form>
+    <p>(For this project use password: pharmacist123)</p>
+    <p><a href="index.html">Not a pharmacist? Switch role</a></p>
+  </div>
+
+  <div id="adminPanel" style="display:none;">
+    <h2>Pharmacist Panel</h2>
+
+    <h3>Sales Analytics</h3>
+    <div id="analyticsBox"></div>
+
+    <h3>Orders</h3>
+    <div id="ordersBox"></div>
+
+    <h3>Lab Test Bookings</h3>
+    <div id="labBookingsBox"></div>
+
+    <h3>Chat with Customers</h3>
+    <div class="chat-box">
+      <label>Select Customer (User ID)</label>
+      <select id="chatUserSelect" onchange="loadAdminChat()"></select>
+      <div class="chat-messages" id="adminChatMessages"></div>
+      <div class="chat-input-row">
+        <input type="text" id="adminChatInput" placeholder="Type your reply">
+        <button onclick="sendAdminChatMessage()">Send</button>
+      </div>
+    </div>
+
+    <h3>Add New Medicine</h3>
+    <form id="addMedicineForm">
+      <label>Name</label>
+      <input type="text" id="medName" required>
+      <label>Category</label>
+      <input type="text" id="medCategory" required>
+      <label>Price</label>
+      <input type="number" id="medPrice" required>
+      <label>Stock</label>
+      <input type="number" id="medStock" required>
+      <label><input type="checkbox" id="medRx" style="width:auto;"> Needs Prescription</label>
+      <label><input type="checkbox" id="medCold" style="width:auto;"> Needs Cold Storage</label>
+      <label>Description</label>
+      <textarea id="medDescription" rows="2"></textarea>
+      <label>Image URL (optional, leave blank for default photo)</label>
+      <input type="text" id="medImage" placeholder="https://...">
+      <button type="submit">Add Medicine</button>
+    </form>
+
+    <h3>Manage Inventory</h3>
+    <div id="inventoryBox"></div>
+  </div>
+</div>
+
+<footer>
+  Online Pharmacy Website - College Project
+</footer>
+
+<script src="script.js"></script>
+<script>
+  document.getElementById("adminLoginForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    const pass = document.getElementById("adminPassword").value;
+    if (pass === "pharmacist123") {
+      document.getElementById("loginBox").style.display = "none";
+      document.getElementById("adminPanel").style.display = "block";
+      loadAnalytics();
+      loadOrders();
+      loadInventory();
+      loadChatUserList();
+      loadLabBookingsAdmin();
+    } else {
+      alert("Wrong password");
+    }
+  });
+
+  function loadAnalytics() {
+    fetch("/api/admin/analytics")
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        let statusHtml = "";
+        for (let i = 0; i < data.statusCounts.length; i++) {
+          statusHtml = statusHtml + data.statusCounts[i].status + ": " + data.statusCounts[i].count + "<br>";
+        }
+
+        let lowStockHtml = "";
+        for (let i = 0; i < data.lowStock.length; i++) {
+          lowStockHtml = lowStockHtml + data.lowStock[i].name + " (" + data.lowStock[i].stock + " left)<br>";
+        }
+        if (lowStockHtml === "") {
+          lowStockHtml = "None";
+        }
+
+        document.getElementById("analyticsBox").innerHTML =
+          "<p><b>Total Orders:</b> " + data.totalOrders + "</p>" +
+          "<p><b>Total Sales:</b> Rs. " + (data.totalSales || 0) + "</p>" +
+          "<p><b>Orders by Status:</b><br>" + statusHtml + "</p>" +
+          "<p><b>Low Stock Alerts:</b><br>" + lowStockHtml + "</p>";
+      });
+  }
+
+  function loadOrders() {
+    fetch("/api/admin/orders")
+      .then(function (res) { return res.json(); })
+      .then(function (orders) {
+        let html = "<table><tr><th>ID</th><th>User</th><th>Items</th><th>Total</th><th>Payment</th><th>Insurance/Cold</th><th>Address</th><th>Phone</th><th>Prescription</th><th>Status</th><th>Action</th></tr>";
+
+        for (let i = 0; i < orders.length; i++) {
+          const o = orders[i];
+          const items = JSON.parse(o.items);
+          let itemNames = "";
+          for (let j = 0; j < items.length; j++) {
+            itemNames = itemNames + items[j].name + " x " + items[j].qty + "<br>";
+          }
+
+          let prescriptionLink = "No file";
+          if (o.prescription_file) {
+            prescriptionLink = "<a href='/uploads/" + o.prescription_file + "' target='_blank'>View</a>";
+          }
+
+          let extraNote = "";
+          if (o.insurance_status) {
+            extraNote = extraNote + "Insurance: " + o.insurance_status + "<br>";
+          }
+          if (o.cold_chain_status) {
+            extraNote = extraNote + o.cold_chain_status;
+          }
+
+          html = html + "<tr>" +
+            "<td>" + o.id + "</td>" +
+            "<td>" + o.user_id + "</td>" +
+            "<td>" + itemNames + "</td>" +
+            "<td>Rs. " + o.total + "</td>" +
+            "<td>" + o.payment_method + "<br>" + o.payment_status + "</td>" +
+            "<td>" + extraNote + "</td>" +
+            "<td>" + o.address + "</td>" +
+            "<td>" + o.phone + "</td>" +
+            "<td>" + prescriptionLink + "</td>" +
+            "<td>" + o.status + "</td>" +
+            "<td>" +
+            "<select onchange='updateStatus(" + o.id + ", this.value)'>" +
+            "<option value=''>Change</option>" +
+            "<option value='Prescription Verified'>Verify Prescription</option>" +
+            "<option value='Processing'>Processing</option>" +
+            "<option value='Out for Delivery'>Out for Delivery</option>" +
+            "<option value='Delivered'>Delivered</option>" +
+            "<option value='Rejected'>Reject</option>" +
+            "<option value='Refunded'>Refund (Item Unavailable)</option>" +
+            "</select>" +
+            "</td>" +
+            "</tr>";
+        }
+
+        html = html + "</table>";
+        document.getElementById("ordersBox").innerHTML = html;
+      });
+  }
+
+  function updateStatus(orderId, status) {
+    if (status === "") {
+      return;
+    }
+    fetch("/api/admin/orders/" + orderId + "/status", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: status })
+    })
+      .then(function (res) { return res.json(); })
+      .then(function () {
+        loadOrders();
+      });
+  }
+
+  function loadInventory() {
+    fetch("/api/admin/medicines")
+      .then(function (res) { return res.json(); })
+      .then(function (medicines) {
+        let html = "<table><tr><th>Photo</th><th>Name</th><th>Category</th><th>Cold Chain</th><th>Price</th><th>Stock</th><th>Update</th></tr>";
+
+        for (let i = 0; i < medicines.length; i++) {
+          const m = medicines[i];
+          html = html + "<tr>" +
+            "<td><img src='" + getMedicineImage(m) + "' style='width:50px;height:50px;object-fit:cover;border-radius:4px;' onerror=\"this.style.display='none';\"></td>" +
+            "<td>" + m.name + "</td>" +
+            "<td>" + m.category + "</td>" +
+            "<td>" + (m.cold_chain === 1 ? "Yes" : "No") + "</td>" +
+            "<td><input type='number' id='price" + m.id + "' value='" + m.price + "' style='width:70px;'></td>" +
+            "<td><input type='number' id='stock" + m.id + "' value='" + m.stock + "' style='width:70px;'></td>" +
+            "<td><button onclick='updateMedicine(" + m.id + ")'>Save</button></td>" +
+            "</tr>";
+        }
+
+        html = html + "</table>";
+        document.getElementById("inventoryBox").innerHTML = html;
+      });
+  }
+
+  function updateMedicine(id) {
+    const price = document.getElementById("price" + id).value;
+    const stock = document.getElementById("stock" + id).value;
+
+    fetch("/api/admin/medicines/" + id, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ price: price, stock: stock })
+    })
+      .then(function (res) { return res.json(); })
+      .then(function () {
+        alert("Medicine updated");
+        loadInventory();
+      });
+  }
+
+  document.getElementById("addMedicineForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const data = {
+      name: document.getElementById("medName").value,
+      category: document.getElementById("medCategory").value,
+      price: document.getElementById("medPrice").value,
+      stock: document.getElementById("medStock").value,
+      needsPrescription: document.getElementById("medRx").checked,
+      coldChain: document.getElementById("medCold").checked,
+      description: document.getElementById("medDescription").value,
+      imageUrl: document.getElementById("medImage").value
+    };
+
+    fetch("/api/admin/medicines", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    })
+      .then(function (res) { return res.json(); })
+      .then(function () {
+        alert("Medicine added");
+        document.getElementById("addMedicineForm").reset();
+        loadInventory();
+      });
+  });
+  function loadLabBookingsAdmin() {
+    fetch("/api/admin/lab-bookings")
+      .then(function (res) { return res.json(); })
+      .then(function (bookings) {
+        let html = "<table><tr><th>ID</th><th>User</th><th>Test</th><th>Price</th><th>Address</th><th>Phone</th><th>Date</th><th>Status</th><th>Action</th></tr>";
+
+        for (let i = 0; i < bookings.length; i++) {
+          const b = bookings[i];
+          html = html + "<tr>" +
+            "<td>" + b.id + "</td>" +
+            "<td>" + b.user_id + "</td>" +
+            "<td>" + b.test_name + "</td>" +
+            "<td>Rs. " + b.price + "</td>" +
+            "<td>" + b.address + "</td>" +
+            "<td>" + b.phone + "</td>" +
+            "<td>" + b.booking_date + "</td>" +
+            "<td>" + b.status + "</td>" +
+            "<td>" +
+            "<select onchange='updateLabStatus(" + b.id + ", this.value)'>" +
+            "<option value=''>Change</option>" +
+            "<option value='Sample Collected'>Sample Collected</option>" +
+            "<option value='Report Ready'>Report Ready</option>" +
+            "<option value='Cancelled'>Cancelled</option>" +
+            "</select>" +
+            "</td>" +
+            "</tr>";
+        }
+
+        html = html + "</table>";
+        document.getElementById("labBookingsBox").innerHTML = html;
+      });
+  }
+
+  function updateLabStatus(id, status) {
+    if (status === "") {
+      return;
+    }
+    fetch("/api/admin/lab-bookings/" + id + "/status", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: status })
+    })
+      .then(function (res) { return res.json(); })
+      .then(function () {
+        loadLabBookingsAdmin();
+      });
+  }
+
+  function loadChatUserList() {
+    fetch("/api/admin/orders")
+      .then(function (res) { return res.json(); })
+      .then(function (orders) {
+        const userIds = [];
+        for (let i = 0; i < orders.length; i++) {
+          if (userIds.indexOf(orders[i].user_id) === -1) {
+            userIds.push(orders[i].user_id);
+          }
+        }
+
+        const select = document.getElementById("chatUserSelect");
+        let html = "";
+        for (let i = 0; i < userIds.length; i++) {
+          html = html + "<option value='" + userIds[i] + "'>User " + userIds[i] + "</option>";
+        }
+        select.innerHTML = html;
+
+        if (userIds.length > 0) {
+          loadAdminChat();
+        }
+      });
+  }
+
+  function loadAdminChat() {
+    const userId = document.getElementById("chatUserSelect").value;
+    if (!userId) {
+      return;
+    }
+
+    fetch("/api/chat/" + userId)
+      .then(function (res) { return res.json(); })
+      .then(function (messages) {
+        const box = document.getElementById("adminChatMessages");
+        let html = "";
+
+        for (let i = 0; i < messages.length; i++) {
+          const m = messages[i];
+          const cssClass = m.sender === "pharmacist" ? "user" : "pharmacist";
+          html = html + "<div class='chat-msg " + cssClass + "'>" + m.message + "</div>";
+        }
+
+        box.innerHTML = html;
+        box.scrollTop = box.scrollHeight;
+      });
+  }
+
+  function sendAdminChatMessage() {
+    const userId = document.getElementById("chatUserSelect").value;
+    const input = document.getElementById("adminChatInput");
+    const message = input.value;
+
+    if (!userId || message === "") {
+      return;
+    }
+
+    fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: userId, sender: "pharmacist", message: message })
+    })
+      .then(function (res) { return res.json(); })
+      .then(function () {
+        input.value = "";
+        loadAdminChat();
+      });
+  }
+</script>
+
+</body>
+</html>

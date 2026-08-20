@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Medicine Details</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>MediCare </h1>
+  </div>
+  <nav id="headerNav"></nav>
+</header>
+
+<div class="container">
+  <div id="productBox">
+    <p>Loading...</p>
+  </div>
+
+  <div id="subsBox"></div>
+
+  <div id="relatedBox" style="margin-top:35px;"></div>
+</div>
+
+<footer>
+  Online Pharmacy Website - College Project
+</footer>
+
+<script src="script.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const medicineId = params.get("id");
+
+  fetch("/api/medicines/" + medicineId)
+    .then(function (res) { return res.json(); })
+    .then(function (data) {
+      if (!data.found) {
+        document.getElementById("productBox").innerHTML = "<p>Medicine not found.</p>";
+        return;
+      }
+
+      const m = data.medicine;
+      let rxTag = "";
+      if (m.needs_prescription === 1) {
+        rxTag = '<span class="rx-tag">Prescription Required</span>';
+      }
+
+      let coldTag = "";
+      if (m.cold_chain === 1) {
+        coldTag = '<span class="cold-tag">Cold Chain - Delivered Chilled</span>';
+      }
+
+      let stockHtml = "In Stock: " + m.stock;
+      let buttonHtml = '<button onclick="addToCart(' + m.id + ', \'' + m.name + '\', ' + m.price + ', ' + m.needs_prescription + ', ' + m.cold_chain + ')">Add to Cart</button>';
+
+      if (m.stock === 0) {
+        stockHtml = '<span class="out-of-stock">Out of Stock</span>';
+        buttonHtml = '<button disabled>Out of Stock</button>';
+      }
+
+      let heartClass = isInWishlist(m.id) ? "heart-btn active" : "heart-btn";
+      let heartHtml = "<div class='" + heartClass + "' onclick='toggleHeart(this, " + m.id + ", \"" + m.name.replace(/"/g, "") + "\", " + m.price + ")'>&#9825;</div>";
+
+      let ratingHtml = "";
+      if (m.rating) {
+        ratingHtml = "<p><span class='stars'>" + getStarsHtml(m.rating) + "</span> " + m.rating + " out of 5 (" + m.rating_count + " ratings)</p>";
+      }
+
+      document.getElementById("productBox").innerHTML =
+        "<div style='position:relative; max-width:340px;'>" + heartHtml +
+        "<img src='" + getMedicineImage(m) + "' class='medicine-icon-big' alt='" + m.name + "' onerror=\"this.onerror=null;this.style.display='none';\"></div>" +
+        "<h2>" + m.name + "</h2>" +
+        ratingHtml +
+        "<p>" + rxTag + " " + coldTag + "</p>" +
+        "<p><b>Category:</b> " + m.category + "</p>" +
+        getPriceHtml(m) +
+        "<p>" + stockHtml + "</p>" +
+        "<h3>Description</h3>" +
+        "<p>" + m.description + "</p>" +
+        buttonHtml;
+
+      if (data.substitutes && data.substitutes.length > 0) {
+        let subsHtml = "<h3>This medicine is out of stock. You may try these alternatives:</h3><div class='medicine-grid'>";
+        for (let i = 0; i < data.substitutes.length; i++) {
+          const s = data.substitutes[i];
+          subsHtml = subsHtml +
+            "<div class='medicine-card'><img src='" + getMedicineImage(s) + "' class='medicine-icon' alt='" + s.name + "' onerror=\"this.onerror=null;this.style.display='none';\"><h3>" + s.name + "</h3>" + getPriceHtml(s) +
+            "<a class='btn' href='product.html?id=" + s.id + "'>View</a></div>";
+        }
+        subsHtml = subsHtml + "</div>";
+        document.getElementById("subsBox").innerHTML = subsHtml;
+      }
+
+      loadRelatedProducts(m.category, m.id);
+    });
+
+  function loadRelatedProducts(category, currentId) {
+    fetch("/api/medicines?category=" + encodeURIComponent(category))
+      .then(function (res) { return res.json(); })
+      .then(function (medicines) {
+        let html = "<h2>You may also like</h2><div class='medicine-grid'>";
+        let found = 0;
+
+        for (let i = 0; i < medicines.length; i++) {
+          const m = medicines[i];
+          if (m.id === Number(currentId)) {
+            continue;
+          }
+
+          let stockText = "In Stock: " + m.stock;
+          if (m.stock === 0) {
+            stockText = "<span class='out-of-stock'>Out of Stock</span>";
+          }
+
+          let ratingSmall = "";
+          if (m.rating) {
+            ratingSmall = "<p><span class='stars' style='font-size:14px;'>" + getStarsHtml(m.rating) + "</span> (" + m.rating_count + ")</p>";
+          }
+
+          html = html +
+            "<div class='medicine-card'>" +
+            "<img src='" + getMedicineImage(m) + "' class='medicine-icon' alt='" + m.name + "' onerror=\"this.onerror=null;this.style.display='none';\">" +
+            "<h3>" + m.name + "</h3>" +
+            ratingSmall +
+            getPriceHtml(m) +
+            "<p>" + stockText + "</p>" +
+            "<a class='btn' href='product.html?id=" + m.id + "'>View</a>" +
+            "</div>";
+
+          found = found + 1;
+        }
+
+        html = html + "</div>";
+
+        if (found > 0) {
+          document.getElementById("relatedBox").innerHTML = html;
+        }
+      });
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>My Cart</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>MediCare </h1>
+  </div>
+  <nav id="headerNav"></nav>
+</header>
+
+<div class="container">
+  <h2>My Cart</h2>
+  <div id="cartBox"></div>
+  <div class="total-box" id="totalBox"></div>
+  <br>
+  <a class="btn" href="checkout.html" id="checkoutBtn">Proceed to Checkout</a>
+</div>
+
+<footer>
+  Online Pharmacy Website - College Project
+</footer>
+
+<script src="script.js"></script>
+<script>
+  function renderCart() {
+    const cart = getCart();
+    const cartBox = document.getElementById("cartBox");
+
+    if (cart.length === 0) {
+      cartBox.innerHTML = "<p>Your cart is empty.</p>";
+      document.getElementById("totalBox").innerText = "";
+      document.getElementById("checkoutBtn").style.display = "none";
+      return;
+    }
+
+    let html = "";
+    let total = 0;
+
+    for (let i = 0; i < cart.length; i++) {
+      const item = cart[i];
+      total = total + (item.price * item.qty);
+
+      html = html +
+        "<div class='cart-item'>" +
+        "<div><b>" + item.name + "</b><br>Rs. " + item.price + " x " + item.qty + "</div>" +
+        "<div>" +
+        "<button onclick='changeQty(" + i + ", -1)'>-</button> " +
+        item.qty +
+        " <button onclick='changeQty(" + i + ", 1)'>+</button> " +
+        "<button onclick='removeItem(" + i + ")'>Remove</button>" +
+        "</div>" +
+        "</div>";
+    }
+
+    cartBox.innerHTML = html;
+    document.getElementById("totalBox").innerText = "Total: Rs. " + total;
+  }
+
+  function changeQty(index, change) {
+    const cart = getCart();
+    cart[index].qty = cart[index].qty + change;
+    if (cart[index].qty < 1) {
+      cart.splice(index, 1);
+    }
+    saveCart(cart);
+    renderCart();
+    loadHeader();
+  }
+
+  function removeItem(index) {
+    const cart = getCart();
+    cart.splice(index, 1);
+    saveCart(cart);
+    renderCart();
+    loadHeader();
+  }
+
+  renderCart();
+</script>
+
+</body>
+</html>

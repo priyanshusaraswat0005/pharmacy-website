@@ -5,7 +5,7 @@ const QRCode = require("qrcode");
 const db = require("./db.js");
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 const SHOP_UPI_ID = "priyanshusaraswat99@okicici";
 const SHOP_UPI_NAME = "MediCare Pharmacy";
@@ -14,6 +14,9 @@ const SHOP_WHATSAPP_NUMBER = "919529227771";
 app.use(express.json());
 app.use(express.static("public"));
 app.use("/uploads", express.static("uploads"));
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {

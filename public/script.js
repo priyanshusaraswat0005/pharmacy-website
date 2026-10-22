@@ -37,7 +37,7 @@ function getMedicineIcon(category) {
 
 function getMedicineImage(m) {
   if (m.image_url) {
-    return m.image_url;
+    return m.image_url.replace(/'/g, "%27");
   }
   return getMedicineIcon(m.category);
 }

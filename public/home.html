@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MediCare Online Pharmacy</title>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -14,9 +15,18 @@
   <nav id="headerNav"></nav>
 </header>
 
-<div class="banner">
-  
-</div>
+<section class="home-hero">
+  <div class="home-hero-copy">
+    <p class="home-hero-kicker">Everyday care, made simpler</p>
+    <h2>Your health essentials, delivered with care.</h2>
+    <p>Find trusted medicines, book a home lab test, and get thoughtful support for your health journey.</p>
+    <div class="home-hero-actions">
+      <a class="btn" href="#medicines">Shop medicines</a>
+      <a class="btn btn-outline" href="labtests.html">Explore lab tests</a>
+    </div>
+  </div>
+  <img class="home-hero-image" src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1100&q=85" alt="Pharmacist preparing a medicine order" onerror="this.style.display='none';">
+</section>
 
 <div class="container">
 
@@ -53,14 +63,14 @@
   <h2>Health Packs</h2>
   <div class="medicine-grid" id="packsGrid"></div>
 
-  <h2 style="margin-top:35px;">Medicines</h2>
+  <h2 id="medicines" style="margin-top:35px;">Medicines</h2>
   <div id="medicineGrid" class="medicine-grid">
     <p>Loading medicines...</p>
   </div>
 </div>
 
 <footer>
-  Online Pharmacy Website - College Project
+  MediCare Pharmacy | Your health, in one place.
 </footer>
 
 <script src="script.js"></script>

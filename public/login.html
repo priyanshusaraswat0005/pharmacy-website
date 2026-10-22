@@ -2,76 +2,202 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Sign in to MediCare to manage your medicines, lab tests and health profile.">
 <title>Login - MediCare</title>
 <link rel="stylesheet" href="style.css">
 <style>
-  .login-page-wrap {
-    max-width: 420px;
-    margin: 45px auto;
+  .login-page {
+    --login-green: #145b50;
+    --login-ink: #172b28;
+    --login-muted: #61716e;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: #f1f5f2;
   }
-  .login-badge {
-    width: 64px;
-    height: 64px;
-    background-color: #232f3e;
-    color: #ff9900;
-    border-radius: 14px;
+  .login-page header {
+    background: #123c38;
+  }
+  .login-page header h1 span {
+    color: #b8d9cc;
+  }
+  .login-shell {
+    width: min(100% - 40px, 1000px);
+    margin: auto;
+    padding: 54px 0;
+    flex: 1;
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-size: 26px;
+  }
+  .login-panel {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 0.95fr 1.05fr;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid #dfe8e3;
+    border-radius: 8px;
+    box-shadow: 0 18px 50px rgba(26, 58, 49, 0.1);
+  }
+  .login-story {
+    padding: 46px 42px;
+    color: #fff;
+    background-color: #145b50;
+  }
+  .login-kicker {
+    margin: 0 0 28px;
+    color: #c4e2d7;
+    font-size: 12px;
     font-weight: bold;
-    margin: 0 auto 14px auto;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+  }
+  .login-story h2 {
+    margin: 0 0 12px;
+    color: #fff;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 34px;
+    font-weight: normal;
+    line-height: 1.15;
+  }
+  .login-story p {
+    margin: 0;
+    color: #d4e8e1;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .login-story img {
+    display: block;
+    width: 100%;
+    height: 190px;
+    margin-top: 30px;
+    border-radius: 6px;
+    object-fit: cover;
   }
   .login-card {
-    background: white;
-    border-radius: 10px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    padding: 32px 30px 24px 30px;
-    text-align: center;
+    padding: 52px 58px 42px;
+    color: var(--login-ink);
   }
   .login-card h2 {
-    margin: 0 0 4px 0;
-    font-size: 22px;
+    margin: 0 0 8px;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 29px;
+    font-weight: normal;
   }
   .login-card p.sub {
-    color: #565959;
+    margin: 0 0 25px;
+    color: var(--login-muted);
     font-size: 14px;
-    margin: 0 0 20px 0;
+    line-height: 1.5;
   }
   .login-card form {
-    box-shadow: none;
-    border: none;
+    max-width: none;
     padding: 0;
-    max-width: 100%;
-    text-align: left;
+    border: 0;
+    box-shadow: none;
+  }
+  .login-card form label {
+    margin: 16px 0 7px;
+    color: #344541;
+    font-size: 13px;
+  }
+  .login-card form input {
+    min-height: 46px;
+    padding: 11px 13px;
+    border-color: #cbd7d1;
+    border-radius: 5px;
+    font-size: 15px;
+  }
+  .login-card form input:focus {
+    border-color: var(--login-green);
+    box-shadow: 0 0 0 3px rgba(20, 91, 80, 0.13);
   }
   .login-card button {
     width: 100%;
-    margin-top: 16px;
+    min-height: 48px;
+    margin-top: 24px;
+    border-color: var(--login-green);
+    border-radius: 5px;
+    background: var(--login-green);
+    color: #fff;
+    font-weight: bold;
   }
-  .login-strip {
-    display: flex;
-    justify-content: center;
-    gap: 6px;
-    margin: 22px 0 10px 0;
+  .login-card button:hover:not(:disabled) {
+    background: #104b42;
   }
-  .login-strip span {
-    width: 26px;
-    height: 5px;
-    border-radius: 3px;
-    display: inline-block;
+  .login-card button:disabled {
+    cursor: wait;
+    opacity: 0.75;
+  }
+  .login-status:empty {
+    display: none;
   }
   .login-links {
+    margin-top: 24px;
+    padding-top: 17px;
+    border-top: 1px solid #e6ece8;
+    color: var(--login-muted);
+    font-size: 13px;
     text-align: center;
-    font-size: 14px;
-    margin-top: 18px;
+  }
+  .login-links p {
+    margin: 8px 0;
   }
   .login-links a {
-    color: #007185;
+    color: var(--login-green);
+    font-weight: bold;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+  .login-security {
+    margin-top: 20px;
+    color: var(--login-muted);
+    font-size: 12px;
+    text-align: center;
+  }
+  .login-page footer {
+    margin-top: 0;
+    border-top: 1px solid #dfe8e3;
+    color: #64716d;
+  }
+  @media (max-width: 700px) {
+    .login-shell {
+      width: min(100% - 28px, 480px);
+      padding: 28px 0;
+    }
+    .login-panel {
+      grid-template-columns: 1fr;
+    }
+    .login-story {
+      padding: 28px 28px 24px;
+    }
+    .login-kicker {
+      margin-bottom: 14px;
+    }
+    .login-story h2 {
+      font-size: 28px;
+    }
+    .login-story img {
+      height: 130px;
+      margin-top: 20px;
+    }
+    .login-card {
+      padding: 32px 28px;
+    }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .login-panel {
+      animation: login-arrive 350ms ease-out both;
+    }
+    @keyframes login-arrive {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
   }
 </style>
 </head>
-<body>
+<body class="login-page">
 
 <header>
   <div class="header-left">
@@ -80,54 +206,62 @@
   <nav id="headerNav"></nav>
 </header>
 
-<div class="container">
-  <div class="login-page-wrap">
-
-    <div class="login-badge">M+</div>
-
+<main class="login-shell">
+  <div class="login-panel">
+    <section class="login-story" aria-label="MediCare">
+      <p class="login-kicker">Your health, in one place</p>
+      <h2>Care that comes a little closer.</h2>
+      <p>Order everyday medicines, book trusted lab tests and keep your health details close at hand.</p>
+      <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Pills.JPG" alt="Assorted medicines" onerror="this.style.display='none';">
+    </section>
     <div class="login-card">
-      <h2>Sign in to MediCare</h2>
+      <h2>Welcome back</h2>
       <p class="sub">Order medicines, book lab tests and manage your health in one place.</p>
 
-      <div id="msgBox"></div>
+      <div class="login-status" id="msgBox" aria-live="polite" aria-atomic="true"></div>
 
       <form id="loginForm">
-        <label>Email</label>
-        <input type="email" id="email" autocapitalize="off" autocorrect="off" spellcheck="false" required>
+        <label for="email">Email address</label>
+        <input type="email" id="email" name="email" autocomplete="email" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="you@example.com" required>
 
-        <label>Password</label>
-        <input type="password" id="password" required>
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" autocomplete="current-password" placeholder="Enter your password" required>
 
-        <button type="submit">Sign In</button>
+        <button id="loginSubmit" type="submit">Sign in</button>
       </form>
-
-      <div class="login-strip">
-        <span style="background-color:#ff9900;"></span>
-        <span style="background-color:#232f3e;"></span>
-        <span style="background-color:#B12704;"></span>
-        <span style="background-color:#007185;"></span>
-      </div>
 
       <div class="login-links">
         <p>New to MediCare? <a href="register.html">Create your account</a></p>
         <p><a href="index.html">Not a patient? Switch role</a></p>
       </div>
+      <p class="login-security">Your account details are handled securely.</p>
     </div>
-
   </div>
-</div>
+</main>
 
 <footer>
-  Online Pharmacy Website - College Project
+  MediCare Pharmacy | Your health, in one place.
 </footer>
 
 <script src="script.js"></script>
 <script>
+  function showLoginError(message) {
+    const msgBox = document.getElementById("msgBox");
+    const errorMessage = document.createElement("div");
+    errorMessage.className = "message error";
+    errorMessage.textContent = message;
+    msgBox.replaceChildren(errorMessage);
+  }
+
   document.getElementById("loginForm").addEventListener("submit", function (e) {
     e.preventDefault();
 
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
+    const submitButton = document.getElementById("loginSubmit");
+    submitButton.disabled = true;
+    submitButton.textContent = "Signing in...";
+    document.getElementById("msgBox").replaceChildren();
 
     fetch("/api/login", {
       method: "POST",
@@ -150,11 +284,15 @@
               window.location.href = "home.html";
             });
         } else {
-          document.getElementById("msgBox").innerHTML = "<div class='message error'>" + data.message + "</div>";
+          showLoginError(data.message || "Could not sign in. Please check your details and try again.");
+          submitButton.disabled = false;
+          submitButton.textContent = "Sign in";
         }
       })
       .catch(function () {
-        document.getElementById("msgBox").innerHTML = "<div class='message error'>Could not connect to server, please try again.</div>";
+        showLoginError("Could not connect to server, please try again.");
+        submitButton.disabled = false;
+        submitButton.textContent = "Sign in";
       });
   });
 </script>

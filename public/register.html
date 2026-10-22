@@ -2,76 +2,83 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Register - MediCare</title>
 <link rel="stylesheet" href="style.css">
 <style>
-  .login-page-wrap {
-    max-width: 420px;
-    margin: 45px auto;
-  }
-  .login-badge {
-    width: 64px;
-    height: 64px;
-    background-color: #232f3e;
-    color: #ff9900;
-    border-radius: 14px;
+  .login-page {
+    min-height: 100vh;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 26px;
-    font-weight: bold;
-    margin: 0 auto 14px auto;
+    flex-direction: column;
+    background: #f1f5f2;
+  }
+  .login-page header {
+    background: #123c38;
+  }
+  .login-page header h1 span {
+    color: #b8d9cc;
+  }
+  .login-page-wrap {
+    width: min(100% - 32px, 470px);
+    margin: auto;
+    padding: 42px 0;
   }
   .login-card {
-    background: white;
-    border-radius: 10px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    padding: 32px 30px 24px 30px;
-    text-align: center;
+    padding: 38px 42px 30px;
+    border: 1px solid #dfe8e3;
+    border-radius: 7px;
+    background: #fff;
+    box-shadow: 0 18px 50px rgba(26, 58, 49, 0.1);
   }
   .login-card h2 {
-    margin: 0 0 4px 0;
-    font-size: 22px;
+    margin: 0 0 8px;
+    color: #18332e;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 29px;
+    font-weight: normal;
   }
   .login-card p.sub {
-    color: #565959;
+    color: #61716e;
     font-size: 14px;
-    margin: 0 0 20px 0;
+    margin: 0 0 20px;
   }
   .login-card form {
-    box-shadow: none;
-    border: none;
     padding: 0;
     max-width: 100%;
-    text-align: left;
+    border: 0;
+    box-shadow: none;
   }
   .login-card button {
     width: 100%;
-    margin-top: 16px;
-  }
-  .login-strip {
-    display: flex;
-    justify-content: center;
-    gap: 6px;
-    margin: 22px 0 10px 0;
-  }
-  .login-strip span {
-    width: 26px;
-    height: 5px;
-    border-radius: 3px;
-    display: inline-block;
+    margin-top: 22px;
+    border-color: #145b50;
+    background: #145b50;
+    color: #fff;
+    font-weight: bold;
   }
   .login-links {
+    margin-top: 22px;
+    padding-top: 14px;
+    border-top: 1px solid #e6ece8;
+    color: #61716e;
+    font-size: 13px;
     text-align: center;
-    font-size: 14px;
-    margin-top: 18px;
   }
   .login-links a {
-    color: #007185;
+    color: #145b50;
+    font-weight: bold;
+  }
+  .login-page footer {
+    margin-top: 0;
+  }
+  @media (max-width: 500px) {
+    .login-card {
+      padding: 30px 24px 24px;
+    }
   }
 </style>
 </head>
-<body>
+<body class="login-page">
 
 <header>
   <div class="header-left">
@@ -82,8 +89,6 @@
 
 <div class="container">
   <div class="login-page-wrap">
-
-    <div class="login-badge">M+</div>
 
     <div class="login-card">
       <h2>Create your account</h2>
@@ -107,13 +112,6 @@
         <button type="submit">Create Account</button>
       </form>
 
-      <div class="login-strip">
-        <span style="background-color:#ff9900;"></span>
-        <span style="background-color:#232f3e;"></span>
-        <span style="background-color:#B12704;"></span>
-        <span style="background-color:#007185;"></span>
-      </div>
-
       <div class="login-links">
         <p>Already have an account? <a href="login.html">Login here</a></p>
         <p><a href="index.html">Not a patient? Switch role</a></p>
@@ -124,7 +122,7 @@
 </div>
 
 <footer>
-  Online Pharmacy Website - College Project
+  MediCare Pharmacy | Your health, in one place.
 </footer>
 
 <script src="script.js"></script>
